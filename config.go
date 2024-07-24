@@ -8,6 +8,7 @@ import (
 )
 
 var configFilePath = "./config.json"
+var sleepRecordFilePath = "./sleep_record.json"
 var ConfigData Config
 var mutex = &sync.Mutex{}
 
@@ -72,6 +73,23 @@ func SaveConfig() error {
 	encoder := json.NewEncoder(file)
 	err = encoder.Encode(&ConfigData)
 	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SaveSleepRecord saves the sleep record to the sleep_record.json file
+// SaveSleepRecord 将睡眠记录保存到 sleep_record.json 文件
+func SaveSleepRecord(record SleepRecord) error {
+	file, err := os.OpenFile(sleepRecordFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	if err := encoder.Encode(record); err != nil {
 		return err
 	}
 

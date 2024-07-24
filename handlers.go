@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
 // Response struct to standardize API responses
@@ -10,6 +11,13 @@ import (
 type Response struct {
 	Success bool   `json:"success"`
 	Result  string `json:"result"`
+}
+
+// SleepRecord struct to hold the sleep records
+// SleepRecord 结构体保存入睡和醒来时间的记录
+type SleepRecord struct {
+	Action string `json:"action"`
+	Time   string `json:"time"`
 }
 
 // StatusHandler handles the /status route and returns the current sleep status
@@ -28,7 +36,6 @@ func ChangeHandler(w http.ResponseWriter, r *http.Request) {
 	clientIP := r.RemoteAddr
 	LogAccess(clientIP)
 
-	w.Header().Set("Content-Type", "application/json")
 	key := r.URL.Query().Get("key")
 	status := r.URL.Query().Get("status")
 
@@ -39,10 +46,13 @@ func ChangeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var desiredSleepState bool
+	var action string
 	if status == "1" {
 		desiredSleepState = true
+		action = "sleep"
 	} else if status == "0" {
 		desiredSleepState = false
+		action = "wake"
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(Response{Success: false, Result: "Invalid Status"})
@@ -54,9 +64,18 @@ func ChangeHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(Response{Success: false, Result: "sleep already " + status})
 	} else {
 		ConfigData.Sleep = desiredSleepState
+		record := SleepRecord{
+			Action: action,
+			Time:   time.Now().Format(time.RFC3339),
+		}
 		if err := SaveConfig(); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(Response{Success: false, Result: "Failed to Save Config"})
+			return
+		}
+		if err := SaveSleepRecord(record); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(Response{Success: false, Result: "Failed to Save Sleep Record"})
 			return
 		}
 		w.WriteHeader(http.StatusOK)
