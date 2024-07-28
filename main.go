@@ -16,6 +16,11 @@ func main() {
 		return
 	}
 
+	// Output the current key at startup
+	// 启动时输出当前的 key
+	fmt.Printf("Current key: %s\n", ConfigData.Key)
+	fmt.Printf("当前的 key: %s\n", ConfigData.Key)
+
 	http.HandleFunc("/status", StatusHandler)
 	http.HandleFunc("/change", ChangeHandler)
 
