@@ -3,7 +3,11 @@
 
 ## 项目介绍
 
-Sleep-Status 是一个使用 Go 语言编写的简单服务。该服务通过读取配置文件 `config.json` 来获取和修改 `sleep` 状态，并通过 RESTful API 提供相关接口。灵感来源于 [这个Bilibili视频](https://www.bilibili.com/video/BV1fE421A7PE/)。使用 Go 语言是因为其跨平台交叉编译特性，使得服务可以在多个操作系统上运行。
+Sleep-Status 是一个使用 Go 语言编写的简单后端服务。该服务通过读取配置文件 `config.json` 来获取和修改 `sleep` 状态。
+
+灵感来源于 [这个Bilibili视频](https://www.bilibili.com/video/BV1fE421A7PE/)。
+
+使用 Go 语言是因为其跨平台交叉编译特性，使得服务可以便捷的在多个操作系统上运行。
 
 ## 功能特点
 
