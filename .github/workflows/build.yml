@@ -49,7 +49,13 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: sleep-status-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: sleep-status-${{ matrix.goos }}-${{ matrix.goarch }}, sha256.txt
+          path: sleep-status-${{ matrix.goos }}-${{ matrix.goarch }}
+
+      - name: Upload SHA256 checksum
+        uses: actions/upload-artifact@v2
+        with:
+          name: sha256-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: sha256.txt
 
   package:
     runs-on: ubuntu-latest
@@ -62,6 +68,53 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v2
         with:
+          name: sleep-status-linux-amd64
+          path: ./build
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: sleep-status-linux-arm64
+          path: ./build
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: sleep-status-windows-amd64
+          path: ./build
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: sleep-status-darwin-amd64
+          path: ./build
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: sleep-status-darwin-arm64
+          path: ./build
+
+      - name: Download SHA256 checksums
+        uses: actions/download-artifact@v2
+        with:
+          name: sha256-linux-amd64
+          path: ./build
+      - name: Download SHA256 checksums
+        uses: actions/download-artifact@v2
+        with:
+          name: sha256-linux-arm64
+          path: ./build
+      - name: Download SHA256 checksums
+        uses: actions/download-artifact@v2
+        with:
+          name: sha256-windows-amd64
+          path: ./build
+      - name: Download SHA256 checksums
+        uses: actions/download-artifact@v2
+        with:
+          name: sha256-darwin-amd64
+          path: ./build
+      - name: Download SHA256 checksums
+        uses: actions/download-artifact@v2
+        with:
+          name: sha256-darwin-arm64
           path: ./build
 
       - name: Create a tarball of the binaries
@@ -71,7 +124,7 @@ jobs:
 
       - name: Append SHA256 checksums
         run: |
-          cat ./build/sha256.txt >> release/sha256.txt
+          cat ./build/sha256*.txt > release/sha256.txt
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v2
