@@ -26,7 +26,7 @@ Sleep-Status 是一个使用 Go 语言编写的简单后端服务。该服务通
 点击下方按钮，使用[Render](https://render.com/)一键部署
 
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/shenghuo2/sleep-status)
 
 
 ## 自行部署
