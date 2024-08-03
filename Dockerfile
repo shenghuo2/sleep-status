@@ -7,7 +7,7 @@ LABEL maintainer="shenghuo2"
 WORKDIR /app
 
 # Copy go.mod and go.sum files
-COPY go.mod go.sum ./
+COPY go.mod ./
 
 # Download all the dependencies
 RUN go mod download
@@ -18,8 +18,8 @@ COPY . .
 # Build the Go application
 RUN go build .
 
-# Expose the port the app runs on
-EXPOSE 8000
+# Expose the port the app runs on (If you need)
+# EXPOSE 8000
 
 # Command to run the executable
 CMD ["./sleep-status", "--port=8000", "--host=0.0.0.0"]
