@@ -10,7 +10,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    environment: 
+      name: production
     steps:
       # Checkout the repository
       - name: Checkout repository
