@@ -1,5 +1,5 @@
-# Start with a base image containing Go and the necessary dependencies
-FROM golang:1.16-alpine
+# Build stage
+FROM golang:1.16-alpine AS builder
 
 LABEL maintainer="shenghuo2"
 
@@ -16,7 +16,16 @@ RUN go mod download
 COPY . .
 
 # Build the Go application
-RUN go build .
+RUN go build -o sleep-status .
+
+# Run stage
+FROM alpine:latest
+
+# Set the working directory inside the container
+WORKDIR /root/
+
+# Copy the built executable from the builder stage
+COPY --from=builder /app/sleep-status .
 
 # Expose the port the app runs on (If you need)
 # EXPOSE 8000
