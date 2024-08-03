@@ -39,23 +39,27 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          go build -o sleep-status-${{ matrix.goos }}-${{ matrix.goarch }} .
+          if [ "${{ matrix.goos }}" = "windows" ]; then \
+            go build -o sleep-status-${{ matrix.goos }}-${{ matrix.goarch }}.exe .; \
+          else \
+            go build -o sleep-status-${{ matrix.goos }}-${{ matrix.goarch }} .; \
+          fi
 
       - name: Generate SHA256 checksum
         run: |
-          sha256sum sleep-status-${{ matrix.goos }}-${{ matrix.goarch }} >> sha256.txt
+          if [ "${{ matrix.goos }}" = "windows" ]; then \
+            sha256sum sleep-status-${{ matrix.goos }}-${{ matrix.goarch }}.exe >> sha256-${{ matrix.goos }}-${{ matrix.goarch }}.txt; \
+          else \
+            sha256sum sleep-status-${{ matrix.goos }}-${{ matrix.goarch }} >> sha256-${{ matrix.goos }}-${{ matrix.goarch }}.txt; \
+          fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v2
         with:
           name: sleep-status-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: sleep-status-${{ matrix.goos }}-${{ matrix.goarch }}
-
-      - name: Upload SHA256 checksum
-        uses: actions/upload-artifact@v2
-        with:
-          name: sha256-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: sha256.txt
+          path: |
+            sleep-status-${{ matrix.goos }}-${{ matrix.goarch }}*
+            sha256-${{ matrix.goos }}-${{ matrix.goarch }}.txt
 
   package:
     runs-on: ubuntu-latest
@@ -69,62 +73,44 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: sleep-status-linux-amd64
-          path: ./build
+          path: ./build/linux/amd64
       - name: Download build artifacts
         uses: actions/download-artifact@v2
         with:
           name: sleep-status-linux-arm64
-          path: ./build
+          path: ./build/linux/arm64
       - name: Download build artifacts
         uses: actions/download-artifact@v2
         with:
           name: sleep-status-windows-amd64
-          path: ./build
+          path: ./build/windows/amd64
       - name: Download build artifacts
         uses: actions/download-artifact@v2
         with:
           name: sleep-status-darwin-amd64
-          path: ./build
+          path: ./build/darwin/amd64
       - name: Download build artifacts
         uses: actions/download-artifact@v2
         with:
           name: sleep-status-darwin-arm64
-          path: ./build
+          path: ./build/darwin/arm64
 
-      - name: Download SHA256 checksums
-        uses: actions/download-artifact@v2
-        with:
-          name: sha256-linux-amd64
-          path: ./build
-      - name: Download SHA256 checksums
-        uses: actions/download-artifact@v2
-        with:
-          name: sha256-linux-arm64
-          path: ./build
-      - name: Download SHA256 checksums
-        uses: actions/download-artifact@v2
-        with:
-          name: sha256-windows-amd64
-          path: ./build
-      - name: Download SHA256 checksums
-        uses: actions/download-artifact@v2
-        with:
-          name: sha256-darwin-amd64
-          path: ./build
-      - name: Download SHA256 checksums
-        uses: actions/download-artifact@v2
-        with:
-          name: sha256-darwin-arm64
-          path: ./build
-
-      - name: Create a tarball of the binaries
+      - name: Create tarballs of the binaries
         run: |
           mkdir -p release
-          tar -czvf release/sleep-status.tar.gz -C ./build .
+          tar -czvf release/sleep-status-linux-amd64.tar.gz -C ./build/linux/amd64 .
+          tar -czvf release/sleep-status-linux-arm64.tar.gz -C ./build/linux/arm64 .
+          tar -czvf release/sleep-status-windows-amd64.tar.gz -C ./build/windows/amd64 .
+          tar -czvf release/sleep-status-darwin-amd64.tar.gz -C ./build/darwin/amd64 .
+          tar -czvf release/sleep-status-darwin-arm64.tar.gz -C ./build/darwin/arm64 .
 
       - name: Append SHA256 checksums
         run: |
-          cat ./build/sha256*.txt > release/sha256.txt
+          cat ./build/linux/amd64/sha256*.txt > release/sha256.txt
+          cat ./build/linux/arm64/sha256*.txt >> release/sha256.txt
+          cat ./build/windows/amd64/sha256*.txt >> release/sha256.txt
+          cat ./build/darwin/amd64/sha256*.txt >> release/sha256.txt
+          cat ./build/darwin/arm64/sha256*.txt >> release/sha256.txt
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v2
