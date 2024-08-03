@@ -16,7 +16,22 @@ Sleep-Status 是一个使用 Go 语言编写的简单后端服务。该服务通
 - 支持访问日志记录，将 `/status` 路由请求的 IP 地址记录到 `access.log` 文件中。
 - 配置文件 `config.json` 不存在时会自动创建并填入默认值。
 
-## 安装
+
+# 使用方法
+
+## 一键部署
+
+### Render
+
+点击下方按钮，使用[Render](https://render.com/)一键部署
+
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/shenghuo2/sleep-status)
+
+
+## 自行部署
+
+### 编译成二进制文件
 
 1. 确保已安装 Go 语言环境（推荐使用 Go 1.16 及以上版本）。
 2. 下载或克隆此项目到本地：
@@ -32,7 +47,7 @@ Sleep-Status 是一个使用 Go 语言编写的简单后端服务。该服务通
    go build .
    ```
 
-## 使用
+# 使用
 
 1. 运行编译后的可执行文件：
 
@@ -108,7 +123,6 @@ Sleep-Status 是一个使用 Go 语言编写的简单后端服务。该服务通
 ```
 
 ## 更新日志
-
 
 - v0.0.3: 支持 CORS 请求
 - v0.0.2: 支持入睡和醒来时间的记录
