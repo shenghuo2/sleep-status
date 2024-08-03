@@ -1,11 +1,11 @@
 name: Build and Push Docker Image
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
       - develop
-  workflow_dispatch:
 
 jobs:
   build:
@@ -28,6 +28,16 @@ jobs:
           username: shenghuo2
           password: ${{ secrets.DOCKER_TOKEN }}
 
+      # Get the version from the git tag or use 'latest' if not present
+      - name: Extract version
+        id: get_version
+        run: |
+          if [ ! -z "${{ github.event.ref }}" ]; then
+            echo "VERSION=${{ github.event.ref }}" | sed 's|refs/tags/||' >> $GITHUB_ENV
+          else
+            echo "VERSION=latest" >> $GITHUB_ENV
+          fi
+
       # Build and push the Docker image with multi-platform support
       - name: Build and push
         uses: docker/build-push-action@v2
@@ -36,7 +46,9 @@ jobs:
           file: ./Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64,linux/arm/v7
-          tags: shenghuo2/sleep-status:latest
+          tags: |
+            shenghuo2/sleep-status:latest
+            shenghuo2/sleep-status:${{ env.VERSION }}
 
       # Optional: Log out from Docker Hub
       - name: Log out from Docker Hub
