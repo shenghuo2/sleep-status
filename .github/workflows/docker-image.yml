@@ -1,0 +1,59 @@
+name: Build and Push Docker Image
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: 
+      name: production
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      # Log in to Docker Hub using token
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: shenghuo2
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      # Get the version from the git tag or use 'latest' if not present
+      - name: Extract version
+        id: get_version
+        run: |
+          if [[ "${GITHUB_REF}" == "refs/heads/master" ]]; then
+            echo "VERSION=latest" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          else
+            VERSION=${GITHUB_REF#refs/heads/}
+            echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          fi
+
+      # Build and push the Docker image with multi-platform support
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          tags: |
+            shenghuo2/sleep-status:latest
+            shenghuo2/sleep-status:${{ env.VERSION }}
+
+      # Optional: Log out from Docker Hub
+      - name: Log out from Docker Hub
+        run: docker logout

@@ -24,9 +24,8 @@ type SleepRecord struct {
 // StatusHandler 处理 /status 路由并返回当前的 sleep 状态
 func StatusHandler(w http.ResponseWriter, r *http.Request) {
 	clientIP := r.RemoteAddr
-	LogAccess(clientIP)
+	LogAccess(clientIP, "/status")
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"sleep": ConfigData.Sleep})
 }
@@ -35,7 +34,7 @@ func StatusHandler(w http.ResponseWriter, r *http.Request) {
 // ChangeHandler 处理 /change 路由并在 key 正确时更新 sleep 状态
 func ChangeHandler(w http.ResponseWriter, r *http.Request) {
 	clientIP := r.RemoteAddr
-	LogAccess(clientIP)
+	LogAccess(clientIP, "/change")
 
 	key := r.URL.Query().Get("key")
 	status := r.URL.Query().Get("status")

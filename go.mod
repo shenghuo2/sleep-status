@@ -1,3 +1,1 @@
-module sleep-status
-
-go 1.22.4
+module github.com/shenghuo2/sleep-status

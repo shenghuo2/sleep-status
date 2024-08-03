@@ -10,14 +10,14 @@ var logFilePath = "./access.log"
 
 // LogAccess logs the access information to access.log
 // LogAccess 将访问信息记录到 access.log
-func LogAccess(ip string) error {
+func LogAccess(ip string, route string) error {
 	file, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	logEntry := fmt.Sprintf("%s - %s\n", time.Now().Format(time.RFC3339), ip)
+	logEntry := fmt.Sprintf("%s - %s - %s\n", time.Now().Format(time.RFC3339), ip, route)
 	if _, err := file.WriteString(logEntry); err != nil {
 		return err
 	}

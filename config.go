@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -30,17 +32,22 @@ func LoadConfig() error {
 	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
 		// If the config file does not exist, create it with default values
 		// 如果配置文件不存在，则创建它并写入默认值
+		randomKey, err := generateRandomKey(16)
+		if err != nil {
+			return err
+		}
+
 		ConfigData = Config{
 			Sleep: false,
-			Key:   "default_key",
+			Key:   randomKey,
 		}
 		// Save the default config
 		// 保存默认配置
 		if err := SaveConfig(); err != nil {
 			return err
 		}
-		fmt.Println("Config file created with default values. Please modify the 'key' value in config.json.")
-		fmt.Println("配置文件已创建默认值。请修改config.json中的'key'值。")
+		fmt.Println("Config file created with default values. You can change the key in the config file.")
+		fmt.Println("配置文件已创建默认值。可以通过修改config文件修改密码。")
 		return nil
 	}
 
@@ -50,7 +57,12 @@ func LoadConfig() error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+
+		}
+	}(file)
 
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&ConfigData)
@@ -68,7 +80,12 @@ func SaveConfig() error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+
+		}
+	}(file)
 
 	encoder := json.NewEncoder(file)
 	err = encoder.Encode(&ConfigData)
@@ -86,7 +103,12 @@ func SaveSleepRecord(record SleepRecord) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+
+		}
+	}(file)
 
 	encoder := json.NewEncoder(file)
 	if err := encoder.Encode(record); err != nil {
@@ -94,4 +116,15 @@ func SaveSleepRecord(record SleepRecord) error {
 	}
 
 	return nil
+}
+
+// generateRandomKey generates a random key of the specified length
+// generateRandomKey 生成指定长度的随机密钥
+func generateRandomKey(length int) (string, error) {
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }
