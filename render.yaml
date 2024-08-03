@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: sleep-status
+    runtime: go
+    repo: https://github.com/shenghuo2/sleep-status
+    plan: free
+    region: singapore
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
+version: "1"
