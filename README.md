@@ -1,6 +1,8 @@
 
 # Sleep-Status
 
+![version](https://img.shields.io/github/v/release/shenghuo2/sleep-status?include_prereleases&label=version)
+
 [English](./README-en.md)  [简体中文](./README.md)
 
 ## 项目介绍
@@ -160,6 +162,16 @@ services:
 
 2024-08-03T13:19:01+08:00 - [::1]:19469 - /change
 ```
+
+## 配套项目
+
+### 状态上报（安卓实现）
+
+https://github.com/shenghuo2/sleep-status-sender
+
+可以通过该应用选择“睡醒”或“睡着”状态，将状态发送到指定的服务器。
+
+以及一个设置页面，用户可以配置服务器的 BASE_URL，并测试与服务器的连接。
 
 # 其他
 

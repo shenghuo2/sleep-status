@@ -1,5 +1,7 @@
 # Sleep-Status
 
+![version](https://img.shields.io/github/v/release/shenghuo2/sleep-status?include_prereleases&label=version)
+
 [English](./README-en.md)  [简体中文](./README.md)
 
 ## Project Introduction
@@ -157,6 +159,16 @@ Requests to `/status` and `/change` routes will be logged in the `access.log` fi
 
 2024-08-03T13:19:01+08:00 - [::1]:19469 - /change
 ```
+
+## Supporting Project
+
+### Status Reporting (Android Implementation)
+
+https://github.com/shenghuo2/sleep-status-sender
+
+This app allows users to select either "Awake" or "Asleep" status and send the selected status to a designated server.
+
+There is also a settings page where users can configure the server's BASE_URL and test the connection to the server.
 
 # Others
 
