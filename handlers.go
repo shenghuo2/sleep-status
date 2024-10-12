@@ -26,6 +26,7 @@ func StatusHandler(w http.ResponseWriter, r *http.Request) {
 	clientIP := r.RemoteAddr
 	LogAccess(clientIP, "/status")
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"sleep": ConfigData.Sleep})
 }
