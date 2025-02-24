@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -54,7 +54,7 @@ jobs:
           fi
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: sleep-status-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
@@ -70,27 +70,27 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: sleep-status-linux-amd64
           path: ./build/linux/amd64
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: sleep-status-linux-arm64
           path: ./build/linux/arm64
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: sleep-status-windows-amd64
           path: ./build/windows/amd64
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: sleep-status-darwin-amd64
           path: ./build/darwin/amd64
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: sleep-status-darwin-arm64
           path: ./build/darwin/arm64
@@ -113,7 +113,7 @@ jobs:
           cat ./build/darwin/arm64/sha256*.txt >> release/sha256.txt
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: sleep-status-release
           path: release/
