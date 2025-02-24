@@ -117,3 +117,32 @@ jobs:
         with:
           name: sleep-status-release
           path: release/
+
+  release:
+    runs-on: ubuntu-latest
+    needs: package
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sleep-status-release
+          path: release/
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: |
+            release/*.tar.gz
+          name: Release ${{ github.sha }}
+          body: |
+            Automated draft release for commit ${{ github.sha }}
+            
+            This is an automatically generated draft release containing the latest build artifacts.
+            Please edit this draft to add release notes before publishing.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
