@@ -5,7 +5,9 @@ on:
   push:
     branches:
       - master
-      - develop
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -112,8 +114,34 @@ jobs:
           cat ./build/darwin/amd64/sha256*.txt >> release/sha256.txt
           cat ./build/darwin/arm64/sha256*.txt >> release/sha256.txt
 
-      - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+      - name: Generate release tag
+        id: tag
+        run: |
+          tag="v$(date +'%Y.%m.%d-%H%M')"
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git tag $tag
+          git push origin $tag
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: sleep-status-release
-          path: release/
+          tag_name: ${{ steps.tag.outputs.tag }}
+          draft: true
+          files: |
+            release/*.tar.gz
+          name: Release ${{ steps.tag.outputs.tag }}
+          body: |
+            Automated draft release created on $(date +'%Y-%m-%d %H:%M:%S')
+            
+            This release contains pre-built binaries for the following platforms:
+            - Linux (amd64, arm64)
+            - Windows (amd64)
+            - macOS (amd64, arm64)
+            
+            Commit: ${{ github.sha }}
+            
+            Please edit this draft to add release notes before publishing.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
