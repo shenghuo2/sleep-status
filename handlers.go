@@ -83,3 +83,49 @@ func ChangeHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(Response{Success: true, Result: "status changed! now sleep is " + status})
 	}
 }
+
+// HeartbeatHandler handles the /heartbeat route for receiving heartbeat signals
+// HeartbeatHandler 处理 /heartbeat 路由接收心跳信号
+func HeartbeatHandler(w http.ResponseWriter, r *http.Request) {
+	clientIP := r.RemoteAddr
+	LogAccess(clientIP, "/heartbeat")
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	if !ConfigData.HeartbeatEnabled {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(Response{Success: false, Result: "Heartbeat monitoring is disabled"})
+		return
+	}
+
+	key := r.URL.Query().Get("key")
+	if key != ConfigData.Key {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(Response{Success: false, Result: "Key Wrong"})
+		return
+	}
+
+	updateLastHeartbeat()
+	
+	// If currently sleeping, wake up
+	if ConfigData.Sleep {
+		ConfigData.Sleep = false
+		record := SleepRecord{
+			Action: "wake",
+			Time:   time.Now().Format(time.RFC3339),
+		}
+		if err := SaveConfig(); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(Response{Success: false, Result: "Failed to Save Config"})
+			return
+		}
+		if err := SaveSleepRecord(record); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(Response{Success: false, Result: "Failed to Save Sleep Record"})
+			return
+		}
+	}
+
+	json.NewEncoder(w).Encode(Response{Success: true, Result: "Heartbeat received"})
+}

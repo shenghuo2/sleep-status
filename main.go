@@ -23,6 +23,14 @@ func main() {
 
 	http.HandleFunc("/status", StatusHandler)
 	http.HandleFunc("/change", ChangeHandler)
+	http.HandleFunc("/heartbeat", HeartbeatHandler)
+
+	// Start heartbeat checker if enabled
+	if ConfigData.HeartbeatEnabled {
+		startHeartbeatChecker()
+		fmt.Printf("Heartbeat monitoring enabled (timeout: %d seconds)\n", ConfigData.HeartbeatTimeout)
+		fmt.Printf("心跳监控已启用 (超时: %d 秒)\n", ConfigData.HeartbeatTimeout)
+	}
 
 	addr := fmt.Sprintf("%s:%s", *host, *port)
 	fmt.Printf("Starting server on %s\n", addr)

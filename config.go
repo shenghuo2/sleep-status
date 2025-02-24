@@ -17,8 +17,10 @@ var mutex = &sync.Mutex{}
 // Config struct to hold the config file data
 // Config 结构体保存配置文件数据
 type Config struct {
-	Sleep bool   `json:"sleep"`
-	Key   string `json:"key"`
+	Sleep            bool   `json:"sleep"`
+	Key             string `json:"key"`
+	HeartbeatEnabled bool   `json:"heartbeat_enabled"`
+	HeartbeatTimeout int    `json:"heartbeat_timeout"` // seconds
 }
 
 // LoadConfig loads the configuration from the config file
@@ -38,8 +40,10 @@ func LoadConfig() error {
 		}
 
 		ConfigData = Config{
-			Sleep: false,
-			Key:   randomKey,
+			Sleep:            false,
+			Key:             randomKey,
+			HeartbeatEnabled: false,
+			HeartbeatTimeout: 60,
 		}
 		// Save the default config
 		// 保存默认配置
