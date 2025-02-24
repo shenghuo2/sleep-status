@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -9,99 +10,174 @@ import (
 	"sync"
 )
 
-var configFilePath = "./config.json"
-var sleepRecordFilePath = "./sleep_record.json"
-var ConfigData Config
-var mutex = &sync.Mutex{}
+const (
+	CurrentConfigVersion = 2 // Increment this when adding new versions
+)
 
-// Config struct to hold the config file data
-// Config 结构体保存配置文件数据
+var (
+	configFilePath      = "./config.json"
+	sleepRecordFilePath = "./sleep_record.json"
+	ConfigData          Config
+	mutex               = &sync.Mutex{}
+)
+
+// BaseConfig contains common fields across all versions
+type BaseConfig struct {
+	Version int `json:"version"`
+}
+
+// Config represents the current version of configuration
 type Config struct {
+	BaseConfig
 	Sleep            bool   `json:"sleep"`
-	Key             string `json:"key"`
+	Key              string `json:"key"`
 	HeartbeatEnabled bool   `json:"heartbeat_enabled"`
-	HeartbeatTimeout int    `json:"heartbeat_timeout"` // seconds
+	HeartbeatTimeout int    `json:"heartbeat_timeout"`
+}
+
+// ConfigV1 represents version 1 of configuration
+type ConfigV1 struct {
+	Sleep bool   `json:"sleep"`
+	Key   string `json:"key"`
+}
+
+// migrationFunc defines the signature for version migration functions
+type migrationFunc func([]byte) (Config, error)
+
+// migrationMap stores all version upgrade paths
+var migrationMap = map[int]migrationFunc{
+	0: migrateFromV0ToLatest, // For configs with no version field
+	1: migrateFromV1ToLatest,
+}
+
+// migrateFromV0ToLatest handles migration from the original version (no version field)
+func migrateFromV0ToLatest(data []byte) (Config, error) {
+	var oldConfig ConfigV1
+	if err := json.Unmarshal(data, &oldConfig); err != nil {
+		return Config{}, fmt.Errorf("failed to unmarshal v0 config: %v", err)
+	}
+
+	return Config{
+		BaseConfig: BaseConfig{
+			Version: CurrentConfigVersion,
+		},
+		Sleep:            oldConfig.Sleep,
+		Key:              oldConfig.Key,
+		HeartbeatEnabled: false,
+		HeartbeatTimeout: 60,
+	}, nil
+}
+
+// migrateFromV1ToLatest handles migration from version 1
+func migrateFromV1ToLatest(data []byte) (Config, error) {
+	var v1Config ConfigV1
+	if err := json.Unmarshal(data, &v1Config); err != nil {
+		return Config{}, fmt.Errorf("failed to unmarshal v1 config: %v", err)
+	}
+
+	return Config{
+		BaseConfig: BaseConfig{
+			Version: CurrentConfigVersion,
+		},
+		Sleep:            v1Config.Sleep,
+		Key:              v1Config.Key,
+		HeartbeatEnabled: false,
+		HeartbeatTimeout: 60,
+	}, nil
 }
 
 // LoadConfig loads the configuration from the config file
-// LoadConfig 从配置文件加载配置
 func LoadConfig() error {
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	// Check if the config file exists
-	// 检查配置文件是否存在
 	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
-		// If the config file does not exist, create it with default values
-		// 如果配置文件不存在，则创建它并写入默认值
+		// Create new config with default values
 		randomKey, err := generateRandomKey(16)
 		if err != nil {
 			return err
 		}
 
 		ConfigData = Config{
+			BaseConfig: BaseConfig{
+				Version: CurrentConfigVersion,
+			},
 			Sleep:            false,
-			Key:             randomKey,
+			Key:              randomKey,
 			HeartbeatEnabled: false,
 			HeartbeatTimeout: 60,
 		}
-		// Save the default config
-		// 保存默认配置
+
 		if err := SaveConfig(); err != nil {
 			return err
 		}
-		fmt.Println("Config file created with default values. You can change the key in the config file.")
-		fmt.Println("配置文件已创建默认值。可以通过修改config文件修改密码。")
+		fmt.Println("Config file created with default values.")
+		fmt.Println("配置文件已创建默认值。")
 		return nil
 	}
 
-	// If the config file exists, load it
-	// 如果配置文件存在，则加载它
-	file, err := os.Open(configFilePath)
+	// Read existing config file
+	content, err := os.ReadFile(configFilePath)
 	if err != nil {
 		return err
 	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
 
+	// Try to determine version
+	var baseConfig BaseConfig
+	if err := json.Unmarshal(content, &baseConfig); err != nil {
+		baseConfig.Version = 0 // Assume version 0 if no version field
+	}
+
+	// Check if migration is needed
+	if baseConfig.Version < CurrentConfigVersion {
+		fmt.Printf("Upgrading config from version %d to %d...\n", baseConfig.Version, CurrentConfigVersion)
+		fmt.Printf("正在将配置从版本 %d 升级到 %d...\n", baseConfig.Version, CurrentConfigVersion)
+
+		// Get migration function
+		migrationFunc, exists := migrationMap[baseConfig.Version]
+		if !exists {
+			return fmt.Errorf("no migration path from version %d", baseConfig.Version)
 		}
-	}(file)
 
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&ConfigData)
-	if err != nil {
-		return err
+		// Perform migration
+		newConfig, err := migrationFunc(content)
+		if err != nil {
+			return fmt.Errorf("migration failed: %v", err)
+		}
+
+		ConfigData = newConfig
+		if err := SaveConfig(); err != nil {
+			return fmt.Errorf("failed to save migrated config: %v", err)
+		}
+
+		fmt.Println("Config upgraded successfully!")
+		fmt.Println("配置升级成功！")
+		return nil
+	}
+
+	// Current version, just load it
+	decoder := json.NewDecoder(bytes.NewReader(content))
+	if err := decoder.Decode(&ConfigData); err != nil {
+		return fmt.Errorf("failed to decode config: %v", err)
 	}
 
 	return nil
 }
 
 // SaveConfig saves the current configuration to the config file
-// SaveConfig 将当前配置保存到配置文件
 func SaveConfig() error {
 	file, err := os.OpenFile(configFilePath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-
-		}
-	}(file)
+	defer file.Close()
 
 	encoder := json.NewEncoder(file)
-	err = encoder.Encode(&ConfigData)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return encoder.Encode(&ConfigData)
 }
 
 // SaveSleepRecord saves the sleep record to the sleep_record.json file
-// SaveSleepRecord 将睡眠记录保存到 sleep_record.json 文件
 func SaveSleepRecord(record SleepRecord) error {
 	file, err := os.OpenFile(sleepRecordFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -123,7 +199,6 @@ func SaveSleepRecord(record SleepRecord) error {
 }
 
 // generateRandomKey generates a random key of the specified length
-// generateRandomKey 生成指定长度的随机密钥
 func generateRandomKey(length int) (string, error) {
 	bytes := make([]byte, length)
 	_, err := rand.Read(bytes)
