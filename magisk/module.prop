@@ -1,0 +1,7 @@
+id=sleep_status_reporter
+name=SleepStatusReporter
+version=1.0.0
+versionCode=1
+author=shenghuo2
+description=Auto report device sleep status every 30 seconds
+minMagisk=20400

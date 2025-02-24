@@ -1,0 +1,5 @@
+# Server URL (without trailing slash)
+SERVER_URL="http://your-server:8000"
+
+# API Key from your sleep-status server
+API_KEY="your-api-key-here"
