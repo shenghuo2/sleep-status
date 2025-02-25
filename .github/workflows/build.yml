@@ -71,6 +71,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Checkout Magisk module branch
+        run: |
+          git fetch origin feature/magisk-module
+          git worktree add magisk-module feature/magisk-module
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -106,6 +111,12 @@ jobs:
           tar -czvf release/sleep-status-darwin-amd64.tar.gz -C ./build/darwin/amd64 .
           tar -czvf release/sleep-status-darwin-arm64.tar.gz -C ./build/darwin/arm64 .
 
+      - name: Package Magisk module
+        run: |
+          cp ./build/linux/arm64/sleep-status-linux-arm64 magisk-module/magisk/sleep-status
+          cd magisk-module/magisk
+          zip -r ../../release/sleep-status-magisk.zip .
+
       - name: Append SHA256 checksums
         run: |
           cat ./build/linux/amd64/sha256*.txt > release/sha256.txt
@@ -113,6 +124,7 @@ jobs:
           cat ./build/windows/amd64/sha256*.txt >> release/sha256.txt
           cat ./build/darwin/amd64/sha256*.txt >> release/sha256.txt
           cat ./build/darwin/arm64/sha256*.txt >> release/sha256.txt
+          cd release && sha256sum sleep-status-magisk.zip >> sha256.txt
 
       - name: Generate release tag
         id: tag
@@ -142,6 +154,7 @@ jobs:
           draft: true
           files: |
             release/*.tar.gz
+            release/sleep-status-magisk.zip
             release/sha256.txt
           name: Release ${{ steps.tag.outputs.tag }}
           body: |
@@ -151,6 +164,7 @@ jobs:
             - Linux (amd64, arm64)
             - Windows (amd64)
             - macOS (amd64, arm64)
+            - Android (Magisk module)
             
             ## 🔍 Build Information
             - Build Date: ${{ steps.tag.outputs.build_date }}
