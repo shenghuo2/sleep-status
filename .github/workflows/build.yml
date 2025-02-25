@@ -118,11 +118,22 @@ jobs:
         id: tag
         run: |
           tag="v$(date +'%Y.%m.%d-%H%M')"
+          build_date=$(date +'%Y-%m-%d %H:%M:%S')
           echo "tag=$tag" >> $GITHUB_OUTPUT
+          echo "build_date=$build_date" >> $GITHUB_OUTPUT
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
           git tag $tag
           git push origin $tag
+
+      - name: Get latest release notes
+        id: release-drafter
+        uses: release-drafter/release-drafter@v5
+        with:
+          config-name: release-drafter.yml
+          disable-autolabeler: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -142,11 +153,11 @@ jobs:
             - macOS (amd64, arm64)
             
             ## 🔍 Build Information
-            - Build Date: $(date +'%Y-%m-%d %H:%M:%S')
+            - Build Date: ${{ steps.tag.outputs.build_date }}
             - Commit: ${{ github.sha }}
             
             ## 📝 Release Notes
-            Please check the [Release Notes Draft](https://github.com/shenghuo2/sleep-status/releases) for a detailed changelog.
+            ${{ steps.release-drafter.outputs.body }}
             
             ## 🔒 Checksums
             SHA256 checksums are provided in the sha256.txt file.
