@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -18,6 +19,13 @@ type Response struct {
 type SleepRecord struct {
 	Action string `json:"action"`
 	Time   string `json:"time"`
+}
+
+// RecordsResponse struct to hold the sleep records response
+// RecordsResponse 结构体保存睡眠记录的响应
+type RecordsResponse struct {
+	Success bool          `json:"success"`
+	Records []SleepRecord `json:"records"`
 }
 
 // StatusHandler handles the /status route and returns the current sleep status
@@ -128,4 +136,35 @@ func HeartbeatHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(Response{Success: true, Result: "Heartbeat received"})
+}
+
+// RecordsHandler handles the /records route and returns the latest sleep records
+// RecordsHandler 处理 /records 路由并返回最新的睡眠记录
+func RecordsHandler(w http.ResponseWriter, r *http.Request) {
+	clientIP := r.RemoteAddr
+	LogAccess(clientIP, "/records")
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	// 获取限制数量参数，默认为30
+	limitStr := r.URL.Query().Get("limit")
+	limit := 30
+	if limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
+			limit = parsedLimit
+		}
+	}
+
+	// 读取睡眠记录
+	records, err := LoadSleepRecords(limit)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(Response{Success: false, Result: "Failed to load sleep records"})
+		return
+	}
+
+	// 返回记录
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(RecordsResponse{Success: true, Records: records})
 }
