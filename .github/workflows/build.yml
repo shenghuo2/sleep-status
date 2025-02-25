@@ -113,7 +113,6 @@ jobs:
 
       - name: Package Magisk module
         run: |
-          cp ./build/linux/arm64/sleep-status-linux-arm64 magisk-module/magisk/sleep-status
           cd magisk-module/magisk
           zip -r ../../release/sleep-status-magisk.zip .
 
