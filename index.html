@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark:bg-gray-900">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>似sǐ了吗?</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'media', // 使用系统主题
+    }
+  </script>
+  <style>
+    .status-sleeping {
+      color: #3498db;
+    }
+    .status-awake {
+      color: #2ecc71;
+    }
+    .status-error {
+      color: #e74c3c;
+    }
+    @media (prefers-color-scheme: dark) {
+      .status-sleeping {
+        color: #60a5fa;
+      }
+      .status-awake {
+        color: #34d399;
+      }
+      .status-error {
+        color: #f87171;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900">
+  <div class="max-w-2xl mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-white"><ruby>似<rt>sǐ</rt></ruby>了吗?</h1>
+    
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 transition-shadow duration-300 hover:shadow-xl">
+      <div class="text-gray-700 dark:text-gray-300">shenghuo2's Status:</div>
+      <div id="status" class="text-2xl my-3">加载中...</div>
+      <div id="description" class="text-gray-600 dark:text-gray-400"></div>
+      <div class="text-sm text-gray-500 dark:text-gray-400 mt-4">最后更新: <span id="updateTime"></span></div>
+    </div>
+
+    <div class="flex justify-between items-center">
+      <div class="text-sm text-gray-600 dark:text-gray-400">
+        你可以通过这个页面视奸 shenghuo2。
+      </div>
+      <a href="https://github.com/shenghuo2/sleep-status" 
+         target="_blank" 
+         class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-300 hover:shadow-lg dark:bg-blue-600 dark:hover:bg-blue-700">
+        项目地址
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
+    </div>
+
+    <script>
+      function updateTime() {
+        const now = new Date();
+        return now.getFullYear() + '-' + 
+               String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+               String(now.getDate()).padStart(2, '0') + ' ' + 
+               String(now.getHours()).padStart(2, '0') + ':' + 
+               String(now.getMinutes()).padStart(2, '0') + ':' + 
+               String(now.getSeconds()).padStart(2, '0');
+      }
+
+      function updateStatus() {
+        fetch('https://sleep-status.shenghuo2.top/status')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('网络响应不正常: ' + response.statusText);
+            }
+            return response.json();
+          })
+          .then(data => {
+            const statusDiv = document.getElementById('status');
+            const descDiv = document.getElementById('description');
+            console.log('响应数据:', data);
+            
+            if (data.sleep !== undefined) {
+              if (data.sleep) {
+                statusDiv.textContent = '似了 😴';
+                statusDiv.className = 'text-2xl my-3 status-sleeping';
+                descDiv.textContent = '目前离线，除了电话大概联系不上';
+              } else {
+                statusDiv.textContent = '活着 🌞';
+                statusDiv.className = 'text-2xl my-3 status-awake';
+                descDiv.textContent = '目前在线，可以通过任何可用的联系方式联系本人。';
+              }
+            } else {
+              throw new Error('无效的数据格式');
+            }
+            
+            document.getElementById('updateTime').textContent = updateTime();
+          })
+          .catch(error => {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = '获取状态失败';
+            statusDiv.className = 'text-2xl my-3 status-error';
+            descDiv.textContent = '无法获取状态信息: ' + error.message;
+            console.error('获取睡眠状态时出错:', error);
+            document.getElementById('updateTime').textContent = updateTime();
+          });
+      }
+
+      // 初始加载
+      document.addEventListener("DOMContentLoaded", updateStatus);
+      
+      // 每分钟更新一次
+      setInterval(updateStatus, 60000);
+    </script>
+  </div>
+</body>
+</html>
