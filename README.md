@@ -14,6 +14,21 @@ This is the Magisk module for the Sleep Status project. It sends heartbeat signa
 - Runs as a system service via Magisk
 - Supports Android ARM64 devices
 
+## Project Structure
+
+```
+magisk/
+├── META-INF/                    # Magisk module installation files
+│   └── com/google/android/
+│       ├── update-binary       # Magisk module installer script
+│       └── updater-script      # Empty script (required by Magisk)
+├── build.sh                    # Module build script
+├── config.conf.example         # Example configuration file
+├── customize.sh               # Post-install script
+├── module.prop                # Module information and properties
+└── service.sh                # Service script for heartbeat monitoring
+```
+
 ## Installation
 
 1. Download the latest `sleep-status-magisk.zip` from [Releases](https://github.com/shenghuo2/sleep-status/releases)

@@ -14,6 +14,21 @@
 - 通过 Magisk 作为系统服务运行
 - 支持 Android ARM64 设备
 
+## 项目结构
+
+```
+magisk/
+├── META-INF/                    # Magisk 模块安装文件
+│   └── com/google/android/
+│       ├── update-binary       # Magisk 模块安装脚本
+│       └── updater-script      # 空脚本（Magisk 要求）
+├── build.sh                    # 模块构建脚本
+├── config.conf.example         # 配置文件示例
+├── customize.sh               # 安装后配置脚本
+├── module.prop                # 模块信息和属性
+└── service.sh                # 心跳监控服务脚本
+```
+
 ## 安装方法
 
 1. 从 [Releases](https://github.com/shenghuo2/sleep-status/releases) 下载最新的 `sleep-status-magisk.zip`
