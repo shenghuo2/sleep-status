@@ -16,13 +16,16 @@ Go was chosen because of its cross-platform capabilities, making it easy to run 
 
 - Provides `/status` route to get the current `sleep` status.
 - Provides `/change` route to modify the `sleep` status.
-- Supports access log recording, logging IP addresses of requests to `/status` and `/change` routes in the `access.log` file.
+- Provides `/heartbeat` route to receive heartbeat signals for automatic device status detection.
+- Supports access log recording, logging IP addresses of all route requests in the `access.log` file.
 - Automatically creates the `config.json` file with default values if it does not exist.
+- Supports configuration file versioning with automatic migration of old configurations.
+- Supports automatic sleep status setting on heartbeat timeout.
 - Supports one-click deployment with Render.
 - Supports one-click deployment using Docker and Docker Compose.
 - Supports running as a binary without dependencies for quick execution.
 
-# Deployment
+## Deployment
 
 ## Quick Deployment
 
@@ -137,18 +140,31 @@ The service will start on port 8000. Use `docker logs sleep-status` to view the 
 
    Failure status code is 401
 
-## Configuration File
+## Configuration
 
-The default `config.json` file format is as follows:
+The `config.json` file contains the following fields:
 
 ```json
 {
-  "sleep": false,
-  "key": "default_key"
+  "version": 2,           // Configuration file version
+  "sleep": false,         // Sleep status
+  "key": "your-key",      // API key
+  "heartbeat_enabled": false,  // Whether to enable heartbeat detection
+  "heartbeat_timeout": 60      // Heartbeat timeout in seconds
 }
 ```
 
-When the program runs for the first time, if the configuration file does not exist, it will automatically create the file and generate a random 16-character key.
+### Heartbeat Detection
+
+When heartbeat detection is enabled (`heartbeat_enabled=true`), the server will:
+1. Listen for heartbeat signals from clients (via the `/heartbeat` route)
+2. Automatically set status to sleep if no heartbeat is received for `heartbeat_timeout` seconds
+3. Automatically set status to awake when receiving a heartbeat while in sleep status
+
+Clients need to send periodic heartbeat requests:
+```bash
+curl "http://your-server:8000/heartbeat?key=your-key"
+```
 
 ## Access Logs
 
