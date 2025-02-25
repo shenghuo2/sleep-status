@@ -201,20 +201,46 @@ https://github.com/shenghuo2/sleep-status-sender
 
 以及一个设置页面，用户可以配置服务器的 BASE_URL，并测试与服务器的连接。
 
-# 其他
+### Magisk 模块 ([magisk-module 分支](https://github.com/shenghuo2/sleep-status/tree/magisk-module))
+
+提供 Magisk 模块实现，可以在 Root 设备上实现更深度的系统集成。
+
+### 示例前端 ([frontend-example 分支](https://github.com/shenghuo2/sleep-status/tree/frontend-example))
+
+提供一个基于 Web 的示例前端实现，展示如何与服务端进行交互。
+
+[在线示例](https://blog.shenghuo2.top/test)
 
 ## 更新日志
 
-- v0.0.9
-  - 初次启动时自动创建随机强密码 
-  - 对所有路由进行日志记录 
-  - 启动时输出当前key
-  - 支持 `Render` 蓝图一键部署
-  - 支持 `Docker`和`Docker Compose` 快速部署
+### v0.1.0 (2025-02-25)
+- 新增心跳检测功能
+  - 支持自动检测设备状态
+  - 可配置心跳超时时间
+  - 超时自动设置睡眠状态
+- 新增配置文件版本管理
+  - 自动迁移旧版本配置
+  - 支持配置文件版本号
+- 新增部署方式
+  - 支持 Render 一键部署
+  - 支持 Docker 和 Docker Compose 部署
+  - 提供二进制文件快速部署
 
-- v0.0.3: 支持 CORS 请求
-- v0.0.2: 支持入睡和醒来时间的记录
-- v0.0.1: 初始版本，提供基本功能。
+### v0.0.9
+- 初次启动时自动创建随机强密码 
+- 对所有路由进行日志记录 
+- 启动时输出当前key
+- 支持 `Render` 蓝图一键部署
+- 支持 `Docker`和`Docker Compose` 快速部署
+
+### v0.0.3
+- 支持 CORS 请求
+
+### v0.0.2
+- 支持入睡和醒来时间的记录
+
+### v0.0.1
+- 初始版本，提供基本功能
 
 ## TODO
 
