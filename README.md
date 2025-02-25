@@ -1,4 +1,3 @@
-
 # Sleep-Status
 
 ![version](https://img.shields.io/github/v/release/shenghuo2/sleep-status?include_prereleases&label=version)
@@ -17,13 +16,42 @@ Sleep-Status 是一个使用 Go 语言编写的简单后端服务。该服务通
 
 - 提供 `/status` 路由来获取当前的 `sleep` 状态。
 - 提供 `/change` 路由来修改 `sleep` 状态。
-- 支持访问日志记录，将 `/status` 和 `/change` 路由请求的 IP 地址记录到 `access.log` 文件中。
+- 提供 `/heartbeat` 路由接收心跳信号，自动检测设备状态。
+- 支持访问日志记录，将所有路由请求的 IP 地址记录到 `access.log` 文件中。
 - 配置文件 `config.json` 不存在时会自动创建并填入默认值。
+- 支持配置文件版本管理，自动迁移旧版本配置。
+- 支持心跳超时自动设置睡眠状态。
 - 支持`Render`一键部署
 - 支持使用`Docker`和`Docker Compose`一键部署
 - 支持使用二进制文件，无需依赖快速运行
 
-# 部署
+## 配置说明
+
+配置文件 `config.json` 包含以下字段：
+
+```json
+{
+  "version": 2,           // 配置文件版本
+  "sleep": false,         // 睡眠状态
+  "key": "your-key",      // API密钥
+  "heartbeat_enabled": false,  // 是否启用心跳检测
+  "heartbeat_timeout": 60      // 心跳超时时间（秒）
+}
+```
+
+### 心跳检测
+
+当启用心跳检测时（`heartbeat_enabled=true`），服务器会：
+1. 监听来自客户端的心跳信号（`/heartbeat` 路由）
+2. 如果超过 `heartbeat_timeout` 秒没有收到心跳，自动将状态设置为睡眠
+3. 收到心跳信号时，如果状态为睡眠，自动设置为醒来
+
+客户端需要定期发送心跳请求：
+```bash
+curl "http://your-server:8000/heartbeat?key=your-key"
+```
+
+## 部署
 
 ## 快速部署
 
