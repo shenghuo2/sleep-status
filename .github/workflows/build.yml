@@ -131,17 +131,24 @@ jobs:
           draft: true
           files: |
             release/*.tar.gz
+            release/sha256.txt
           name: Release ${{ steps.tag.outputs.tag }}
           body: |
-            Automated draft release created on $(date +'%Y-%m-%d %H:%M:%S')
-            
+            ## 📦 Automated Release
+
             This release contains pre-built binaries for the following platforms:
             - Linux (amd64, arm64)
             - Windows (amd64)
             - macOS (amd64, arm64)
             
-            Commit: ${{ github.sha }}
+            ## 🔍 Build Information
+            - Build Date: $(date +'%Y-%m-%d %H:%M:%S')
+            - Commit: ${{ github.sha }}
             
-            Please edit this draft to add release notes before publishing.
+            ## 📝 Release Notes
+            Please check the [Release Notes Draft](https://github.com/shenghuo2/sleep-status/releases) for a detailed changelog.
+            
+            ## 🔒 Checksums
+            SHA256 checksums are provided in the sha256.txt file.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

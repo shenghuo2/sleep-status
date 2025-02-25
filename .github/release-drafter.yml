@@ -1,0 +1,67 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'feature'
+      - 'enhancement'
+      - 'feat'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
+  - title: '🧰 Maintenance'
+    labels:
+      - 'chore'
+      - 'dependencies'
+      - 'maintenance'
+  - title: '📚 Documentation'
+    labels:
+      - 'docs'
+      - 'documentation'
+  - title: '⚡ Performance'
+    labels:
+      - 'performance'
+      - 'perf'
+  - title: '🔨 Refactor'
+    labels:
+      - 'refactor'
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - 'breaking'
+  minor:
+    labels:
+      - 'minor'
+      - 'feature'
+      - 'feat'
+      - 'enhancement'
+  patch:
+    labels:
+      - 'patch'
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
+      - 'docs'
+      - 'dependencies'
+      - 'maintenance'
+      - 'refactor'
+      - 'performance'
+      - 'perf'
+      - 'chore'
+  default: patch
+
+template: |
+  ## What's Changed 🛠
+  $CHANGES
+  
+  ## 👨‍💻 Contributors
+  $CONTRIBUTORS
+  
+  **Full Changelog**: https://github.com/shenghuo2/sleep-status/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
