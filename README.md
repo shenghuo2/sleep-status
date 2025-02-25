@@ -4,6 +4,28 @@
 
 [English](./README-en.md)  [简体中文](./README.md)
 
+<details>
+<summary>目录</summary>
+
+- [项目介绍](#项目介绍)
+- [功能特点](#功能特点)
+- [配置说明](#配置说明)
+  - [心跳检测](#心跳检测)
+- [部署](#部署)
+  - [快速部署](#快速部署)
+    - [Render](#render)
+    - [Docker](#docker)
+    - [Docker Compose](#docker-compose)
+  - [自行部署](#自行部署)
+- [使用](#使用)
+  - [配置文件](#配置文件)
+  - [访问日志](#访问日志)
+- [配套项目](#配套项目)
+- [更新日志](#更新日志)
+- [TODO](#todo)
+
+</details>
+
 ## 项目介绍
 
 Sleep-Status 是一个使用 Go 语言编写的简单后端服务。该服务通过读取配置文件 `config.json` 来获取和修改 `sleep` 状态。
@@ -138,6 +160,33 @@ services:
      }
      ```
 
+   - 获取最近的睡眠记录：
+
+     ```sh
+     curl http://<host>:<port>/records[?limit=30]
+     ```
+
+     参数说明：
+     - `limit`：可选，返回的记录数量，默认为30条
+
+     响应示例：
+
+     ```json
+     {
+       "success": true,
+       "records": [
+         {
+           "action": "sleep",
+           "time": "2025-02-25T15:30:00Z"
+         },
+         {
+           "action": "wake",
+           "time": "2025-02-25T23:00:00Z"
+         }
+       ]
+     }
+     ```
+
    - 修改 `sleep` 状态：
 
      ```sh
@@ -212,6 +261,15 @@ https://github.com/shenghuo2/sleep-status-sender
 [在线示例](https://blog.shenghuo2.top/test)
 
 ## 更新日志
+
+### v0.1.1 (2025-02-26)
+- 新增功能
+  - 添加 `/records` API，支持查看最近的睡眠记录
+  - 支持自定义返回记录数量（默认30条）
+- 优化改进
+  - 优化睡眠记录的存储格式，改用JSON数组
+  - 添加旧版本记录格式自动迁移功能
+  - 改进错误处理，提供更友好的错误信息
 
 ### v0.1.0 (2025-02-25)
 - 新增心跳检测功能
