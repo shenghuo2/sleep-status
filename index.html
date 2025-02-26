@@ -3,39 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>似sǐ了吗?</title>
+  <title>生蚝似了吗?</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'media', // 使用系统主题
+      darkMode: 'media',
     }
   </script>
   <style>
-    .status-sleeping {
-      color: #3498db;
-    }
-    .status-awake {
-      color: #2ecc71;
-    }
-    .status-error {
-      color: #e74c3c;
-    }
+    .status-sleeping { color: #3498db; }
+    .status-awake { color: #2ecc71; }
+    .status-error { color: #e74c3c; }
     @media (prefers-color-scheme: dark) {
-      .status-sleeping {
-        color: #60a5fa;
+      .status-sleeping { color: #60a5fa; }
+      .status-awake { color: #34d399; }
+      .status-error { color: #f87171; }
+    }
+    .offline-mode {
+      transition: all 0.5s ease;
+      filter: grayscale(70%) brightness(85%);
+    }
+    .floating-candle {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1000;
+      font-size: 2rem;
+      filter: drop-shadow(0 0 10px rgba(255, 200, 100, 0.3));
+      transition: transform 0.3s ease-out;
+    }
+    .candle-flame {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.2rem;
+      animation: flicker 1s ease-in-out infinite alternate;
+      color: #ffd700;
+      text-shadow: 0 0 10px #ff6b00,
+                   0 0 20px #ff6b00,
+                   0 0 30px #ff8800;
+    }
+    @keyframes flicker {
+      0%, 100% { 
+        transform: translateX(-50%) scale(1.1);
+        text-shadow: 0 0 10px #ff6b00,
+                     0 0 20px #ff6b00,
+                     0 0 30px #ff8800;
       }
-      .status-awake {
-        color: #34d399;
+      50% { 
+        transform: translateX(-50%) scale(0.9);
+        text-shadow: 0 0 5px #ff6b00,
+                     0 0 10px #ff6b00,
+                     0 0 15px #ff8800;
       }
-      .status-error {
-        color: #f87171;
-      }
+    }
+    .offline-mode::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 50% 50%, rgba(0,0,0,0.3) 0%, transparent 80%),
+        linear-gradient(0deg, rgba(0,0,0,0.2) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 999;
     }
   </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900">
+<body class="bg-gray-50 dark:bg-gray-900" id="mainBody">
+  <div id="candleContainer"></div>
   <div class="max-w-2xl mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-white"><ruby>似<rt>sǐ</rt></ruby>了吗?</h1>
+    <h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-white">生蚝<ruby>似<rt>sǐ</rt></ruby>了吗?</h1>
     
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 transition-shadow duration-300 hover:shadow-xl">
       <div class="text-gray-700 dark:text-gray-300">shenghuo2's Status:</div>
@@ -44,21 +84,68 @@
       <div class="text-sm text-gray-500 dark:text-gray-400 mt-4">最后更新: <span id="updateTime"></span></div>
     </div>
 
-    <div class="flex justify-between items-center">
-      <div class="text-sm text-gray-600 dark:text-gray-400">
-        你可以通过这个页面视奸 shenghuo2。
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 transition-shadow duration-300 hover:shadow-xl">
+      <div class="text-gray-700 dark:text-gray-300 mb-4">最近离线记录:</div>
+      <div id="sleepTimelines" class="space-y-8"></div>
+      <div id="timelineDescription" class="text-sm text-gray-500 dark:text-gray-400 mt-8"></div>
+      <div id="weeklyStats" class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <div class="text-gray-700 dark:text-gray-300 mb-4">近七天统计:</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <div class="text-sm text-gray-600 dark:text-gray-400">平均入睡时间: <span id="avgSleepTime" class="font-mono">--:--</span></div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">平均清醒时间: <span id="avgWakeTime" class="font-mono">--:--</span></div>
+          </div>
+          <div class="space-y-2">
+            <div class="text-sm text-gray-600 dark:text-gray-400">平均睡眠时长: <span id="avgSleepDuration" class="font-mono">-小时-分钟</span></div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">统计周期: <span id="statsDateRange" class="font-mono">----/--/-- ~ ----/--/--</span></div>
+          </div>
+        </div>
       </div>
-      <a href="https://github.com/shenghuo2/sleep-status" 
-         target="_blank" 
-         class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-300 hover:shadow-lg dark:bg-blue-600 dark:hover:bg-blue-700">
-        项目地址
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-        </svg>
-      </a>
+    </div>
+
+    <div class="flex flex-col space-y-4">
+      <div class="flex justify-between items-center">
+        <div class="text-sm text-gray-600 dark:text-gray-400">
+          你可以通过这个页面 👀 shenghuo2
+        </div>
+        <div class="flex items-center space-x-4">
+          <button id="testButton" 
+                  class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all duration-300 hover:shadow-lg dark:bg-gray-600 dark:hover:bg-gray-700">
+            测试切换效果
+          </button>
+          <a href="https://github.com/shenghuo2/sleep-status" 
+             target="_blank" 
+             class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-300 hover:shadow-lg dark:bg-blue-600 dark:hover:bg-blue-700">
+            项目地址
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        </div>
+      </div>
+      <div class="text-xs text-gray-500 dark:text-gray-400 border-t pt-4 mt-4">
+        本项目仅代表 shenghuo2 的 Xiaomi 14 设备在线情况
+      </div>
     </div>
 
     <script>
+      function formatTime(hours) {
+        const h = Math.floor(hours);
+        const m = Math.round((hours - h) * 60);
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      }
+
+      function formatDuration(hours) {
+        const h = Math.floor(hours);
+        const m = Math.round((hours - h) * 60);
+        
+        if (h === 0) {
+          return `${m}m`;
+        } else {
+          return `${h}h${m > 0 ? m + 'm' : ''}`;
+        }
+      }
+
       function updateTime() {
         const now = new Date();
         return now.getFullYear() + '-' + 
@@ -67,6 +154,215 @@
                String(now.getHours()).padStart(2, '0') + ':' + 
                String(now.getMinutes()).padStart(2, '0') + ':' + 
                String(now.getSeconds()).padStart(2, '0');
+      }
+
+      function createTimelineElement(date, segments) {
+        const container = document.createElement('div');
+        container.className = 'mb-8 last:mb-0';
+
+        const dateLabel = document.createElement('div');
+        dateLabel.className = 'text-sm text-gray-600 dark:text-gray-400 mb-2';
+        dateLabel.textContent = date;
+        container.appendChild(dateLabel);
+
+        const timelineWrapper = document.createElement('div');
+        timelineWrapper.className = 'relative';
+        container.appendChild(timelineWrapper);
+
+        // 时间线和刻度线
+        const timelineContainer = document.createElement('div');
+        timelineContainer.className = 'relative h-6 bg-gray-100 dark:bg-gray-700 rounded-md overflow-hidden';
+        timelineWrapper.appendChild(timelineContainer);
+
+        // 添加刻度线
+        for (let hour = 0; hour <= 24; hour += 3) {
+          const tick = document.createElement('div');
+          tick.className = 'absolute top-0 bottom-0 w-px bg-gray-300 dark:bg-gray-600 z-10';
+          tick.style.left = `${(hour / 24) * 100}%`;
+          
+          // 主要刻度线加粗
+          if (hour % 6 === 0) {
+            tick.classList.add('bg-gray-400', 'dark:bg-gray-500');
+          }
+          
+          timelineContainer.appendChild(tick);
+        }
+
+        // 添加时间刻度
+        const timeMarkers = document.createElement('div');
+        timeMarkers.className = 'flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1';
+        
+        // 添加6小时间隔的刻度
+        for (let hour = 0; hour <= 24; hour += 6) {
+          const marker = document.createElement('div');
+          marker.className = 'relative';
+          marker.style.width = '1px'; // 仅用于定位
+          
+          // 刻度文本
+          const text = document.createElement('div');
+          text.className = 'absolute transform -translate-x-1/2';
+          text.textContent = hour === 0 || hour === 24 ? hour : hour;
+          marker.appendChild(text);
+          
+          timeMarkers.appendChild(marker);
+        }
+        
+        timelineWrapper.appendChild(timeMarkers);
+
+        segments.forEach(segment => {
+          const segmentElement = document.createElement('div');
+          segmentElement.className = 
+            'absolute h-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center ' +
+            'text-xs text-gray-600 dark:text-gray-300 transition-all duration-300 z-20';
+          segmentElement.style.left = segment.start + '%';
+          segmentElement.style.width = (segment.end - segment.start) + '%';
+          
+          const timeText = document.createElement('div');
+          timeText.className = 'px-2 whitespace-nowrap';
+          timeText.textContent = segment.text;
+          segmentElement.appendChild(timeText);
+          
+          timelineContainer.appendChild(segmentElement);
+        });
+
+        return container;
+      }
+
+      function calculateSleepSegments(records) {
+        const recordsByDate = {};
+        records.forEach(record => {
+          const date = record.time.split('T')[0];
+          if (!recordsByDate[date]) {
+            recordsByDate[date] = [];
+          }
+          recordsByDate[date].push(record);
+        });
+
+        const sleepSegments = {};
+        for (const [date, dayRecords] of Object.entries(recordsByDate)) {
+          sleepSegments[date] = [];
+          let lastSleepTime = null;
+
+          dayRecords.sort((a, b) => new Date(a.time) - new Date(b.time));
+
+          dayRecords.forEach(record => {
+            const time = new Date(record.time);
+            const hours = time.getHours() + time.getMinutes() / 60;
+
+            if (record.action === 'sleep') {
+              lastSleepTime = hours;
+            } else if (record.action === 'wake' && lastSleepTime !== null) {
+              sleepSegments[date].push({
+                start: lastSleepTime,
+                end: hours
+              });
+              lastSleepTime = null;
+            }
+          });
+
+          // 如果最后一个动作是睡眠，使用当前时间作为结束时间
+          if (lastSleepTime !== null) {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            let endHours = 24;
+            
+            // 如果是今天的记录，使用当前时间
+            if (date === today) {
+              endHours = now.getHours() + now.getMinutes() / 60;
+            }
+            
+            sleepSegments[date].push({
+              start: lastSleepTime,
+              end: endHours
+            });
+          }
+        }
+
+        return sleepSegments;
+      }
+
+      function createFloatingElements(sleep) {
+        const candleContainer = document.getElementById('candleContainer');
+        let candleAnimationFrame;
+        
+        // 清除现有的元素和动画
+        candleContainer.innerHTML = '';
+        if (candleAnimationFrame) {
+          cancelAnimationFrame(candleAnimationFrame);
+        }
+        
+        if (sleep) {
+          // 创建蜡烛
+          const candles = [];
+          const candleCount = 4;
+          
+          for (let i = 0; i < candleCount; i++) {
+            const candleDiv = document.createElement('div');
+            candleDiv.className = 'floating-candle';
+            
+            // 添加火焰
+            const flame = document.createElement('div');
+            flame.className = 'candle-flame';
+            flame.textContent = '🔥';
+            candleDiv.appendChild(flame);
+            
+            // 添加蜡烛
+            const candle = document.createElement('div');
+            candle.textContent = '🕯️';
+            candleDiv.appendChild(candle);
+            
+            candleContainer.appendChild(candleDiv);
+            
+            // 初始位置和速度
+            const speed = 2;
+            candles.push({
+              element: candleDiv,
+              x: Math.random() * (window.innerWidth - 50),
+              y: Math.random() * (window.innerHeight - 50),
+              dx: (Math.random() - 0.5) * speed,
+              dy: (Math.random() - 0.5) * speed,
+              width: 50,
+              height: 80
+            });
+          }
+
+          // 动画函数
+          function animateCandles() {
+            candles.forEach(candle => {
+              candle.x += candle.dx;
+              candle.y += candle.dy;
+
+              if (candle.x <= 0 || candle.x >= window.innerWidth - candle.width) {
+                candle.dx *= -1;
+                candle.dy += (Math.random() - 0.5) * 0.5;
+              }
+              if (candle.y <= 0 || candle.y >= window.innerHeight - candle.height) {
+                candle.dy *= -1;
+                candle.dx += (Math.random() - 0.5) * 0.5;
+              }
+
+              const maxSpeed = 3;
+              const speed = Math.sqrt(candle.dx * candle.dx + candle.dy * candle.dy);
+              if (speed > maxSpeed) {
+                candle.dx = (candle.dx / speed) * maxSpeed;
+                candle.dy = (candle.dy / speed) * maxSpeed;
+              }
+
+              candle.element.style.transform = `translate(${candle.x}px, ${candle.y}px)`;
+            });
+
+            candleAnimationFrame = requestAnimationFrame(animateCandles);
+          }
+
+          animateCandles();
+
+          window.addEventListener('resize', () => {
+            candles.forEach(candle => {
+              candle.x = Math.min(candle.x, window.innerWidth - candle.width);
+              candle.y = Math.min(candle.y, window.innerHeight - candle.height);
+            });
+          });
+        }
       }
 
       function updateStatus() {
@@ -80,18 +376,11 @@
           .then(data => {
             const statusDiv = document.getElementById('status');
             const descDiv = document.getElementById('description');
+            const mainBody = document.getElementById('mainBody');
             console.log('响应数据:', data);
             
             if (data.sleep !== undefined) {
-              if (data.sleep) {
-                statusDiv.textContent = '似了 😴';
-                statusDiv.className = 'text-2xl my-3 status-sleeping';
-                descDiv.textContent = '目前离线，除了电话大概联系不上';
-              } else {
-                statusDiv.textContent = '活着 🌞';
-                statusDiv.className = 'text-2xl my-3 status-awake';
-                descDiv.textContent = '目前在线，可以通过任何可用的联系方式联系本人。';
-              }
+              updateUIState(data.sleep);
             } else {
               throw new Error('无效的数据格式');
             }
@@ -99,20 +388,181 @@
             document.getElementById('updateTime').textContent = updateTime();
           })
           .catch(error => {
+            console.error('获取状态失败:', error);
             const statusDiv = document.getElementById('status');
-            statusDiv.textContent = '获取状态失败';
+            statusDiv.textContent = '获取状态失败 ❌';
             statusDiv.className = 'text-2xl my-3 status-error';
-            descDiv.textContent = '无法获取状态信息: ' + error.message;
-            console.error('获取睡眠状态时出错:', error);
+            document.getElementById('description').textContent = error.toString();
             document.getElementById('updateTime').textContent = updateTime();
           });
       }
 
-      // 初始加载
-      document.addEventListener("DOMContentLoaded", updateStatus);
+      function updateUIState(sleep) {
+        const statusDiv = document.getElementById('status');
+        const descDiv = document.getElementById('description');
+        const mainBody = document.getElementById('mainBody');
+
+        if (sleep) {
+          statusDiv.textContent = '似了 😴';
+          statusDiv.className = 'text-2xl my-3 status-sleeping';
+          descDiv.textContent = '目前断网了，除了电话大概都联系不上';
+          mainBody.classList.add('offline-mode');
+          document.documentElement.classList.add('dark');
+          createFloatingElements(true);
+        } else {
+          statusDiv.textContent = '活着 🌞';
+          statusDiv.className = 'text-2xl my-3 status-awake';
+          descDiv.textContent = '目前在线，可以通过任何可用的联系方式联系本人。';
+          mainBody.classList.remove('offline-mode');
+          document.documentElement.classList.remove('dark');
+          createFloatingElements(false);
+        }
+      }
+
+      function updateSleepTimelines() {
+        fetch('https://sleep-status.shenghuo2.top/records')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('网络响应不正常');
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (!data.success || !Array.isArray(data.records)) {
+              throw new Error('无效的数据格式');
+            }
+
+            const container = document.getElementById('sleepTimelines');
+            container.innerHTML = '';
+            
+            // 处理时间线显示
+            const sleepSegments = calculateSleepSegments(data.records);
+            const dates = Object.keys(sleepSegments).sort().reverse();
+
+            dates.slice(0, 7).forEach(date => {
+              const segments = sleepSegments[date].map(segment => ({
+                start: segment.start * 100 / 24,
+                end: segment.end * 100 / 24,
+                text: `${formatTime(segment.start)}-${formatTime(segment.end)} (${formatDuration(segment.end - segment.start)})`
+              }));
+              const timeline = createTimelineElement(date, segments);
+              container.appendChild(timeline);
+            });
+            
+            // 更新统计数据
+            updateWeeklyStats(data.records);
+            
+            document.getElementById('timelineDescription').textContent = 
+              dates.length ? `显示最近 ${Math.min(dates.length, 7)} 天的离线记录` : '暂无离线记录';
+          })
+          .catch(error => {
+            console.error('获取记录失败:', error);
+            document.getElementById('timelineDescription').textContent = 
+              '获取记录失败: ' + error.toString();
+          });
+      }
+
+      function updateWeeklyStats(records) {
+        // 获取最近7天的记录
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        
+        // 按日期分组并找出每天的睡眠和唤醒时间
+        const dailyStats = {};
+        
+        for (let i = 0; i < records.length - 1; i++) {
+          const current = records[i];
+          const next = records[i + 1];
+          const currentTime = new Date(current.time);
+          
+          // 只处理最近7天的数据
+          if (currentTime < sevenDaysAgo) continue;
+          
+          // 如果当前是睡眠记录，下一个是唤醒记录，则这是一个完整的睡眠周期
+          if (current.action === 'sleep' && next.action === 'wake') {
+            const startTime = new Date(current.time);
+            const endTime = new Date(next.time);
+            const date = startTime.toISOString().split('T')[0];
+            
+            if (!dailyStats[date]) {
+              dailyStats[date] = [];
+            }
+            
+            dailyStats[date].push({
+              sleepTime: startTime,
+              wakeTime: endTime,
+              duration: (endTime - startTime) / (60 * 1000) // 转换为分钟
+            });
+          }
+        }
+
+        const dates = Object.keys(dailyStats);
+        if (dates.length === 0) {
+          document.getElementById('avgSleepTime').textContent = '--:--';
+          document.getElementById('avgWakeTime').textContent = '--:--';
+          document.getElementById('avgSleepDuration').textContent = '-小时-分钟';
+          document.getElementById('statsDateRange').textContent = '无数据';
+          return;
+        }
+
+        // 计算平均值
+        let totalSleepMinutes = 0;
+        let totalWakeMinutes = 0;
+        let totalDuration = 0;
+        let cycleCount = 0;
+
+        dates.forEach(date => {
+          dailyStats[date].forEach(cycle => {
+            totalSleepMinutes += cycle.sleepTime.getHours() * 60 + cycle.sleepTime.getMinutes();
+            totalWakeMinutes += cycle.wakeTime.getHours() * 60 + cycle.wakeTime.getMinutes();
+            totalDuration += cycle.duration;
+            cycleCount++;
+          });
+        });
+
+        const avgSleepMinutes = Math.round(totalSleepMinutes / cycleCount);
+        const avgSleepHour = Math.floor(avgSleepMinutes / 60);
+        const avgSleepMinute = avgSleepMinutes % 60;
+
+        const avgWakeMinutes = Math.round(totalWakeMinutes / cycleCount);
+        const avgWakeHour = Math.floor(avgWakeMinutes / 60);
+        const avgWakeMinute = avgWakeMinutes % 60;
+
+        const avgDurationMinutes = Math.round(totalDuration / cycleCount);
+        const avgDurationHours = Math.floor(avgDurationMinutes / 60);
+        const avgDurationMins = avgDurationMinutes % 60;
+
+        // 格式化显示
+        document.getElementById('avgSleepTime').textContent = 
+          `${String(avgSleepHour).padStart(2, '0')}:${String(avgSleepMinute).padStart(2, '0')}`;
+        
+        document.getElementById('avgWakeTime').textContent = 
+          `${String(avgWakeHour).padStart(2, '0')}:${String(avgWakeMinute).padStart(2, '0')}`;
+        
+        document.getElementById('avgSleepDuration').textContent = 
+          avgDurationHours === 0 ? `${avgDurationMins}m` : `${avgDurationHours}h${avgDurationMins > 0 ? avgDurationMins + 'm' : ''}`;
+
+        // 显示统计时间范围
+        const dateFormat = date => `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+        document.getElementById('statsDateRange').textContent = 
+          `${dateFormat(sevenDaysAgo)} ~ ${dateFormat(now)}`;
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        updateStatus();
+        updateSleepTimelines();
+
+        // 添加测试按钮事件
+        const testButton = document.getElementById('testButton');
+        let testMode = false;
+        testButton.addEventListener('click', () => {
+          testMode = !testMode;
+          updateUIState(testMode);
+        });
+      });
       
-      // 每分钟更新一次
       setInterval(updateStatus, 60000);
+      setInterval(updateSleepTimelines, 300000);
     </script>
   </div>
 </body>
