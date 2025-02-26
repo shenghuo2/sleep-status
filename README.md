@@ -4,6 +4,28 @@
 
 [English](./README-en.md)  [简体中文](./README.md)
 
+<details>
+<summary>目录</summary>
+
+- [项目介绍](#项目介绍)
+- [功能特点](#功能特点)
+- [配置说明](#配置说明)
+  - [心跳检测](#心跳检测)
+- [部署](#部署)
+  - [快速部署](#快速部署)
+    - [Render](#render)
+    - [Docker](#docker)
+    - [Docker Compose](#docker-compose)
+  - [自行部署](#自行部署)
+- [使用](#使用)
+  - [配置文件](#配置文件)
+  - [访问日志](#访问日志)
+- [配套项目](#配套项目)
+- [更新日志](#更新日志)
+- [TODO](#todo)
+
+</details>
+
 ## 项目介绍
 
 Sleep-Status 是一个使用 Go 语言编写的简单后端服务。该服务通过读取配置文件 `config.json` 来获取和修改 `sleep` 状态。
@@ -138,6 +160,33 @@ services:
      }
      ```
 
+   - 获取最近的睡眠记录：
+
+     ```sh
+     curl http://<host>:<port>/records[?limit=30]
+     ```
+
+     参数说明：
+     - `limit`：可选，返回的记录数量，默认为30条
+
+     响应示例：
+
+     ```json
+     {
+       "success": true,
+       "records": [
+         {
+           "action": "sleep",
+           "time": "2025-02-25T15:30:00Z"
+         },
+         {
+           "action": "wake",
+           "time": "2025-02-25T23:00:00Z"
+         }
+       ]
+     }
+     ```
+
    - 修改 `sleep` 状态：
 
      ```sh
@@ -201,20 +250,61 @@ https://github.com/shenghuo2/sleep-status-sender
 
 以及一个设置页面，用户可以配置服务器的 BASE_URL，并测试与服务器的连接。
 
-# 其他
+### Magisk 模块 ([magisk-module 分支](https://github.com/shenghuo2/sleep-status/tree/magisk-module))
+
+提供 Magisk 模块实现，可以在 Root 设备上实现更深度的系统集成。
+
+### 示例前端 ([frontend-example 分支](https://github.com/shenghuo2/sleep-status/tree/frontend-example))
+
+提供一个基于 Web 的示例前端实现，展示如何与服务端进行交互。
+
+[在线示例](https://blog.shenghuo2.top/test)
 
 ## 更新日志
 
-- v0.0.9
-  - 初次启动时自动创建随机强密码 
-  - 对所有路由进行日志记录 
-  - 启动时输出当前key
-  - 支持 `Render` 蓝图一键部署
-  - 支持 `Docker`和`Docker Compose` 快速部署
+### v0.1.2 (2025-02-26)
+- 修复问题
+  - 修复 `/records` API 在并发访问时可能导致的死锁问题
+  - 优化锁的使用，提高并发性能
+  - 改进睡眠记录迁移功能的稳定性
 
-- v0.0.3: 支持 CORS 请求
-- v0.0.2: 支持入睡和醒来时间的记录
-- v0.0.1: 初始版本，提供基本功能。
+### v0.1.1 (2025-02-26)
+- 新增功能
+  - 添加 `/records` API，支持查看最近的睡眠记录
+  - 支持自定义返回记录数量（默认30条）
+- 优化改进
+  - 优化睡眠记录的存储格式，改用JSON数组
+  - 添加旧版本记录格式自动迁移功能
+  - 改进错误处理，提供更友好的错误信息
+
+### v0.1.0 (2025-02-25)
+- 新增心跳检测功能
+  - 支持自动检测设备状态
+  - 可配置心跳超时时间
+  - 超时自动设置睡眠状态
+- 新增配置文件版本管理
+  - 自动迁移旧版本配置
+  - 支持配置文件版本号
+- 新增部署方式
+  - 支持 Render 一键部署
+  - 支持 Docker 和 Docker Compose 部署
+  - 提供二进制文件快速部署
+
+### v0.0.9
+- 初次启动时自动创建随机强密码 
+- 对所有路由进行日志记录 
+- 启动时输出当前key
+- 支持 `Render` 蓝图一键部署
+- 支持 `Docker`和`Docker Compose` 快速部署
+
+### v0.0.3
+- 支持 CORS 请求
+
+### v0.0.2
+- 支持入睡和醒来时间的记录
+
+### v0.0.1
+- 初始版本，提供基本功能
 
 ## TODO
 
