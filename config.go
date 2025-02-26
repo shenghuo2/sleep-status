@@ -207,11 +207,44 @@ func SaveSleepRecord(record SleepRecord) error {
 	return nil
 }
 
-// migrateOldSleepRecords 将旧版本的睡眠记录格式转换为新版本
-func migrateOldSleepRecords() error {
+// LoadSleepRecords 从 sleep_record.json 文件中读取指定数量的最新睡眠记录
+func LoadSleepRecords(limit int) ([]SleepRecord, error) {
+	// 尝试迁移旧版本记录，但不在此函数内加锁，避免与其他函数产生死锁
+	if err := migrateOldSleepRecordsNoLock(); err != nil {
+		return nil, fmt.Errorf("failed to migrate old records: %v", err)
+	}
+
 	mutex.Lock()
 	defer mutex.Unlock()
 
+	// 检查文件是否存在
+	if _, err := os.Stat(sleepRecordFilePath); os.IsNotExist(err) {
+		return []SleepRecord{}, nil
+	}
+
+	// 读取文件内容
+	data, err := os.ReadFile(sleepRecordFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read sleep record file: %v", err)
+	}
+
+	var records []SleepRecord
+	if err := json.Unmarshal(data, &records); err != nil {
+		// 如果解析失败，返回空列表
+		return []SleepRecord{}, nil
+	}
+
+	// 如果记录数量小于限制数，返回所有记录
+	if len(records) <= limit {
+		return records, nil
+	}
+
+	// 返回最新的 limit 条记录
+	return records[len(records)-limit:], nil
+}
+
+// migrateOldSleepRecordsNoLock 将旧版本的睡眠记录格式转换为新版本，不加锁版本
+func migrateOldSleepRecordsNoLock() error {
 	// 检查文件是否存在
 	if _, err := os.Stat(sleepRecordFilePath); os.IsNotExist(err) {
 		return nil
@@ -230,6 +263,22 @@ func migrateOldSleepRecords() error {
 
 	// 尝试解析为新格式（JSON数组）
 	var records []SleepRecord
+	if err := json.Unmarshal(data, &records); err == nil {
+		// 已经是新格式，无需转换
+		return nil
+	}
+
+	// 需要转换时才加锁
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// 再次读取文件，确保在加锁后获取最新内容
+	data, err = os.ReadFile(sleepRecordFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to read sleep record file: %v", err)
+	}
+
+	// 再次尝试解析为新格式，避免重复转换
 	if err := json.Unmarshal(data, &records); err == nil {
 		// 已经是新格式，无需转换
 		return nil
@@ -263,42 +312,6 @@ func migrateOldSleepRecords() error {
 	}
 
 	return nil
-}
-
-// LoadSleepRecords 从 sleep_record.json 文件中读取指定数量的最新睡眠记录
-func LoadSleepRecords(limit int) ([]SleepRecord, error) {
-	// 尝试迁移旧版本记录
-	if err := migrateOldSleepRecords(); err != nil {
-		return nil, fmt.Errorf("failed to migrate old records: %v", err)
-	}
-
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	// 检查文件是否存在
-	if _, err := os.Stat(sleepRecordFilePath); os.IsNotExist(err) {
-		return []SleepRecord{}, nil
-	}
-
-	// 读取文件内容
-	data, err := os.ReadFile(sleepRecordFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read sleep record file: %v", err)
-	}
-
-	var records []SleepRecord
-	if err := json.Unmarshal(data, &records); err != nil {
-		// 如果解析失败，返回空列表
-		return []SleepRecord{}, nil
-	}
-
-	// 如果记录数量小于限制数，返回所有记录
-	if len(records) <= limit {
-		return records, nil
-	}
-
-	// 返回最新的 limit 条记录
-	return records[len(records)-limit:], nil
 }
 
 // generateRandomKey generates a random key of the specified length
