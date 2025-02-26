@@ -1,36 +1,67 @@
-# Sleep Status Frontend
+# 睡了吗？
 
-A simple frontend example to show sleep status.
+一个简单的前端页面示例，用来展示我是不是睡着了。
 
-## Features
+## 功能特点
 
-- 🎨 Modern, responsive UI
-  - Dark mode support (follows system preference)
-  - Smooth transitions and hover effects
-  - Clean and minimalist design
-- 🔄 Real-time status updates (every minute)
-- ⚡️ Built with pure HTML, CSS (Tailwind) and JavaScript
-- 💪 Loading states and error handling
+- 现代化界面
+  - 自动适配深色模式（跟随系统设置）
+  - 平滑动画和交互效果
+  - 简约设计风格
+- 离线模式特效
+  - 自动进入深色模式
+  - 页面变灰并降低亮度
+  - 浮动的蜡烛和火焰动画
+  - DVD 屏保风格的蜡烛碰撞效果
+- 实时状态更新
+  - 每分钟自动检查状态
+  - 每 5 分钟更新睡眠记录
+- 睡眠时间线
+  - 展示最近的睡眠记录
+  - 自动计算当前睡眠时长
+  - 时间刻度标记（0, 6, 12, 18, 24小时）
+  - 优化的时长显示格式
+- 睡眠统计分析
+  - 显示近七天平均入睡和清醒时间
+  - 计算平均睡眠时长
+  - 自动更新统计周期
+- 极简技术栈：HTML + CSS（Tailwind）+ JavaScript
+- 完整的加载状态和错误提示
+- 测试功能
+  - 一键切换在线/离线效果
+  - 即时预览所有动画效果
 
-## Usage
+## 使用方法
 
-Simply open `index.html` in your browser. The page will automatically fetch and display the sleep status from the API endpoint.
+用浏览器打开 `index.html` 就可以了，页面会自动获取并显示最新状态。
 
-## API Integration
+右上角的"测试切换效果"按钮可以让你预览在线和离线状态下的所有视觉效果。
 
-The frontend connects to the following endpoint:
-- `GET https://sleep-status.shenghuo2.top/status` - Get current sleep status
+## 接口说明
 
-## Development
+页面会调用这些接口：
+- `GET https://sleep-status.shenghuo2.top/status` - 获取当前状态
+- `GET https://sleep-status.shenghuo2.top/records` - 获取睡眠记录
 
-To modify the frontend:
-1. Edit `index.html` to change the structure or Tailwind classes
-2. The page uses Tailwind CSS via CDN for styling
-3. JavaScript is embedded in the HTML file for simplicity
+## 开发相关
 
-## License
+想要修改页面：
+1. 直接改 `index.html` 就行，包括页面结构和样式（用 Tailwind 的类）
+2. 样式用的是 Tailwind CSS 的 CDN 版本
+3. JavaScript 代码就直接写在 HTML 里面了，简单粗暴
+
+## 视觉效果
+
+离线状态下的特效：
+- 自动切换到深色模式
+- 整个页面会变灰并降低亮度
+- 四个带火焰的蜡烛会在屏幕上四处移动
+- 蜡烛的火焰有闪烁动画
+- 蜡烛碰到边界会反弹（像 DVD 屏保一样）
+
+## 开源协议
 
 MIT
 
 ---
-[简体中文](README-zh.md)
+[English](README-en.md)
