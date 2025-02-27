@@ -458,18 +458,27 @@
             const wakeTime = new Date(current.time);
             const sleepTime = new Date(next.time);
             
+            // 注意: sortedRecords是从新到旧排序的，所以wakeTime在前，sleepTime在后
+            // 这里需要调换顺序，sleepTime应该在前，wakeTime在后
+            
             // 只处理指定日期范围内的数据
             if (sleepTime >= earliestAllowedDate && wakeTime <= latestAllowedDate) {
-              const currentDate = wakeTime.toISOString().split('T')[0];
-              const durationMinutes = (wakeTime - sleepTime) / (60 * 1000); // 转换为分钟
+              // 睡眠时长是唤醒时间减去睡眠时间
+              const durationMinutes = Math.abs(wakeTime - sleepTime) / (60 * 1000); // 转换为分钟
+              
+              // 判断是否为主要睡眠（长于3小时）
+              const isPrimary = durationMinutes >= 180; // 3小时 = 180分钟
+              
+              // 使用睡眠开始的日期作为分组依据
+              // 由于records是从新到旧排序的，实际睡眠时间是next.time，唤醒时间是current.time
+              const sleepDate = next.time.split('T')[0]; // 使用睡眠日期
               
               recentCycles.push({
-                sleepTime,
-                wakeTime,
+                sleepTime: new Date(next.time), // 实际睡眠时间
+                wakeTime: new Date(current.time), // 实际唤醒时间
                 duration: durationMinutes,
-                date: currentDate,
-                // 标记是否为主要睡眠（长于3小时且是当天第一次睡眠）
-                isPrimarySleep: durationMinutes >= 180 // 3小时 = 180分钟
+                date: sleepDate,
+                isPrimarySleep: isPrimary
               });
             }
           }
@@ -484,23 +493,8 @@
           return;
         }
 
-        // 计算统计周期的日期范围
-        let earliestDate = now;
-        let latestDate = new Date(0);
-        
-        recentCycles.forEach(cycle => {
-          if (cycle.sleepTime < earliestDate) {
-            earliestDate = new Date(cycle.sleepTime);
-          }
-          if (cycle.wakeTime > latestDate) {
-            latestDate = new Date(cycle.wakeTime);
-          }
-        });
-
-        // 按日期分组，找出每天的主要睡眠周期（第一段长睡眠）
+        // 按日期分组所有睡眠周期
         const dailySleepCycles = {};
-        
-        // 首先按日期分组所有睡眠周期
         recentCycles.forEach(cycle => {
           const date = cycle.date;
           if (!dailySleepCycles[date]) {
@@ -528,21 +522,21 @@
         // 计算平均值
         let totalSleepMinutes = 0;
         let totalWakeMinutes = 0;
-        let totalDuration = 0;
         let primarySleepCount = 0;
         
         // 计算每日总睡眠时长
         const dailyTotalDurations = {};
         
+        // 首先，将所有睡眠周期按日期分组并计算每日总睡眠时长
         recentCycles.forEach(cycle => {
-          // 所有睡眠都计入每日总睡眠时长
+          // 所有睡眠都计入每日总睡眠时长，无论时长长短
           const date = cycle.date;
           if (!dailyTotalDurations[date]) {
             dailyTotalDurations[date] = 0;
           }
           dailyTotalDurations[date] += cycle.duration;
           
-          // 只有主要睡眠（长于3小时且是当天第一次睡眠）才计入入睡和清醒时间
+          // 只有主要睡眠（每天第一段长于3小时的睡眠）才计入入睡和清醒时间
           if (cycle.isPrimarySleep) {
             totalSleepMinutes += cycle.sleepTime.getHours() * 60 + cycle.sleepTime.getMinutes();
             totalWakeMinutes += cycle.wakeTime.getHours() * 60 + cycle.wakeTime.getMinutes();
@@ -599,8 +593,10 @@
         if (recentDates.length === 1) {
           document.getElementById('statsDateRange').textContent = dateFormat(new Date(recentDates[0]));
         } else {
+          const oldestDate = recentDates[recentDates.length - 1];
+          const newestDate = recentDates[0];
           document.getElementById('statsDateRange').textContent = 
-            `${dateFormat(earliestDate)} ~ ${dateFormat(latestDate)}`;
+            `${dateFormat(new Date(oldestDate))} ~ ${dateFormat(new Date(newestDate))}`;
         }
       }
 
