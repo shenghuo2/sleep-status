@@ -53,17 +53,7 @@ func startHeartbeatChecker() {
 			timeSinceLastHeartbeat := time.Since(getLastHeartbeat())
 			if timeSinceLastHeartbeat > time.Duration(ConfigData.HeartbeatTimeout)*time.Second {
 				// Mark as sleeping if heartbeat timeout exceeded
-				mutex.Lock()
-				if !ConfigData.Sleep {
-					ConfigData.Sleep = true
-					record := SleepRecord{
-						Action: "sleep",
-						Time:   time.Now().Format(time.RFC3339),
-					}
-					SaveConfig()
-					SaveSleepRecord(record)
-				}
-				mutex.Unlock()
+				setStatusToSleep()
 			}
 
 			// Reset timer for next check
@@ -81,4 +71,35 @@ func stopHeartbeatChecker() {
 		heartbeatChecker.Stop()
 		isCheckerRunning = false
 	}
+}
+
+// setStatusToSleep 安全地将状态设置为睡眠，避免死锁
+func setStatusToSleep() {
+	// 先检查当前状态，避免不必要的锁定和文件操作
+	if ConfigData.Sleep {
+		return
+	}
+	
+	// 使用单独的锁，避免与其他函数产生死锁
+	mutex.Lock()
+	defer mutex.Unlock()
+	
+	// 再次检查状态，避免在获取锁期间状态被改变
+	if ConfigData.Sleep {
+		return
+	}
+	
+	ConfigData.Sleep = true
+	record := SleepRecord{
+		Action: "sleep",
+		Time:   time.Now().Format(time.RFC3339),
+	}
+	
+	// 保存配置但不要在这里处理错误，避免阻塞心跳检测器
+	_ = SaveConfig()
+	
+	// 使用无锁版本保存记录，避免死锁
+	go func(r SleepRecord) {
+		_ = SaveSleepRecordNoLock(r)
+	}(record)
 }
