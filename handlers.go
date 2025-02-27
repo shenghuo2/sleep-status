@@ -32,7 +32,8 @@ type RecordsResponse struct {
 // StatusHandler 处理 /status 路由并返回当前的 sleep 状态
 func StatusHandler(w http.ResponseWriter, r *http.Request) {
 	clientIP := r.RemoteAddr
-	LogAccess(clientIP, "/status")
+	// 异步记录访问日志，避免阻塞主处理流程
+	go LogAccess(clientIP, "/status")
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
@@ -43,7 +44,8 @@ func StatusHandler(w http.ResponseWriter, r *http.Request) {
 // ChangeHandler 处理 /change 路由并在 key 正确时更新 sleep 状态
 func ChangeHandler(w http.ResponseWriter, r *http.Request) {
 	clientIP := r.RemoteAddr
-	LogAccess(clientIP, "/change")
+	// 异步记录访问日志，避免阻塞主处理流程
+	go LogAccess(clientIP, "/change")
 
 	key := r.URL.Query().Get("key")
 	status := r.URL.Query().Get("status")
@@ -96,7 +98,8 @@ func ChangeHandler(w http.ResponseWriter, r *http.Request) {
 // HeartbeatHandler 处理 /heartbeat 路由接收心跳信号
 func HeartbeatHandler(w http.ResponseWriter, r *http.Request) {
 	clientIP := r.RemoteAddr
-	LogAccess(clientIP, "/heartbeat")
+	// 异步记录访问日志，避免阻塞主处理流程
+	go LogAccess(clientIP, "/heartbeat")
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
@@ -116,33 +119,47 @@ func HeartbeatHandler(w http.ResponseWriter, r *http.Request) {
 
 	updateLastHeartbeat()
 	
-	// If currently sleeping, wake up
-	if ConfigData.Sleep {
-		ConfigData.Sleep = false
-		record := SleepRecord{
-			Action: "wake",
-			Time:   time.Now().Format(time.RFC3339),
-		}
-		if err := SaveConfig(); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(Response{Success: false, Result: "Failed to Save Config"})
-			return
-		}
-		if err := SaveSleepRecord(record); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(Response{Success: false, Result: "Failed to Save Sleep Record"})
-			return
-		}
+	// 检查当前状态，如果是睡眠状态则唤醒
+	// 使用原子操作检查，避免不必要的锁争用
+	needWakeUp := ConfigData.Sleep
+	
+	if needWakeUp {
+		// 使用单独的函数处理唤醒操作，避免在处理请求时持有锁太久
+		go wakeUpFromSleep()
 	}
 
 	json.NewEncoder(w).Encode(Response{Success: true, Result: "Heartbeat received"})
+}
+
+// wakeUpFromSleep 安全地将状态设置为醒来
+func wakeUpFromSleep() {
+	mutex.Lock()
+	defer mutex.Unlock()
+	
+	// 再次检查状态，避免在获取锁期间状态被改变
+	if !ConfigData.Sleep {
+		return
+	}
+	
+	ConfigData.Sleep = false
+	record := SleepRecord{
+		Action: "wake",
+		Time:   time.Now().Format(time.RFC3339),
+	}
+	
+	// 保存配置
+	_ = SaveConfig()
+	
+	// 保存记录
+	_ = SaveSleepRecordNoLock(record)
 }
 
 // RecordsHandler handles the /records route and returns the latest sleep records
 // RecordsHandler 处理 /records 路由并返回最新的睡眠记录
 func RecordsHandler(w http.ResponseWriter, r *http.Request) {
 	clientIP := r.RemoteAddr
-	LogAccess(clientIP, "/records")
+	// 异步记录访问日志，避免阻塞主处理流程
+	go LogAccess(clientIP, "/records")
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")

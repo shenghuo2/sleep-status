@@ -207,6 +207,33 @@ func SaveSleepRecord(record SleepRecord) error {
 	return nil
 }
 
+// SaveSleepRecordNoLock 保存睡眠记录到文件，但不加锁（调用者需要确保并发安全）
+func SaveSleepRecordNoLock(record SleepRecord) error {
+	// 读取现有记录
+	var records []SleepRecord
+	if data, err := os.ReadFile(sleepRecordFilePath); err == nil {
+		if err := json.Unmarshal(data, &records); err != nil {
+			// 如果解析失败，就当作是空列表
+			records = []SleepRecord{}
+		}
+	}
+
+	// 添加新记录
+	records = append(records, record)
+
+	// 写入文件
+	data, err := json.MarshalIndent(records, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal sleep records: %v", err)
+	}
+
+	if err := os.WriteFile(sleepRecordFilePath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write sleep records: %v", err)
+	}
+
+	return nil
+}
+
 // LoadSleepRecords 从 sleep_record.json 文件中读取指定数量的最新睡眠记录
 func LoadSleepRecords(limit int) ([]SleepRecord, error) {
 	// 尝试迁移旧版本记录，但不在此函数内加锁，避免与其他函数产生死锁

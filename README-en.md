@@ -4,6 +4,38 @@
 
 [English](./README-en.md)  [简体中文](./README.md)
 
+<details>
+<summary>Table of Contents</summary>
+
+- [Project Introduction](#project-introduction)
+- [Features](#features)
+- [Configuration](#configuration)
+  - [Heartbeat Detection](#heartbeat-detection)
+- [Deployment](#deployment)
+  - [Quick Deployment](#quick-deployment)
+    - [Render](#render)
+    - [Docker](#docker)
+    - [Docker Compose](#docker-compose)
+  - [Self Deployment](#self-deployment)
+    - [Compile to Binary](#compile-to-binary)
+- [Usage](#usage)
+  - [API Description](#api-description)
+  - [Configuration File](#configuration)
+  - [Access Logs](#access-logs)
+- [Supporting Project](#supporting-project)
+  - [Status Reporting (Android Implementation)](#status-reporting-android-implementation)
+- [Changelog](#changelog)
+  - [v0.1.2 (2025-02-27)](#v012-2025-02-27)
+  - [v0.1.1 (2025-02-26)](#v011-2025-02-26)
+  - [v0.1.0 (2025-02-25)](#v010-2025-02-25)
+  - [v0.0.9](#v009)
+  - [v0.0.3](#v003)
+  - [v0.0.2](#v002)
+  - [v0.0.1](#v001)
+- [TODO](#todo)
+
+</details>
+
 ## Project Introduction
 
 Sleep-Status is a simple backend service written in Go. The service reads and modifies the `sleep` status by reading the configuration file `config.json`.
@@ -190,7 +222,35 @@ There is also a settings page where users can configure the server's BASE_URL an
 
 ## Changelog
 
-- v0.0.9
+### v0.1.2 (2025-02-27)
+- Bug Fixes
+  - Fixed deadlock issue in `/records` API during concurrent access
+  - Optimized heartbeat detection mechanism to prevent lock contention with other operations
+  - Improved stability of sleep records migration functionality
+- Performance Optimization
+  - Implemented asynchronous logging to avoid blocking API responses
+  - Implemented fine-grained locking mechanism to improve concurrent performance
+  - Added non-locking version of record saving functions to reduce lock contention
+- Code Refactoring
+  - Extracted status change logic to dedicated functions for better maintainability
+  - Optimized heartbeat checker implementation to avoid deadlocks caused by nested locks
+
+### v0.1.1 (2025-02-26)
+- New Features
+  - Added `/records` API to view recent sleep records
+  - Support for customizing the number of returned records (default 30)
+- Improvements
+  - Optimized sleep record storage format, switched to JSON array
+  - Added automatic migration functionality for old record formats
+  - Improved error handling with more friendly error messages
+
+### v0.1.0 (2025-02-25)
+- Added heartbeat detection functionality
+  - Automatically detect sleep status based on heartbeat signals
+  - Configurable heartbeat timeout
+  - Can be enabled/disabled via configuration
+
+### v0.0.9
     - Automatically create a random strong password on first startup
     - Log all routes
     - Output the current key at startup
