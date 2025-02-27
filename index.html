@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>生蚝似了吗?</title>
+  <title>生蚝现在似了吗?</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -85,18 +85,18 @@
     </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 transition-shadow duration-300 hover:shadow-xl">
-      <div class="text-gray-700 dark:text-gray-300 mb-4">最近离线记录:</div>
+      <div id="timelineTitle" class="text-gray-700 dark:text-gray-300 mb-4">离线记录:</div>
       <div id="sleepTimelines" class="space-y-8"></div>
       <div id="timelineDescription" class="text-sm text-gray-500 dark:text-gray-400 mt-8"></div>
       <div id="weeklyStats" class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-        <div class="text-gray-700 dark:text-gray-300 mb-4">近七天统计:</div>
+        <div id="statsTitle" class="text-gray-700 dark:text-gray-300 mb-4">睡眠统计:</div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-2">
             <div class="text-sm text-gray-600 dark:text-gray-400">平均入睡时间: <span id="avgSleepTime" class="font-mono">--:--</span></div>
             <div class="text-sm text-gray-600 dark:text-gray-400">平均清醒时间: <span id="avgWakeTime" class="font-mono">--:--</span></div>
           </div>
           <div class="space-y-2">
-            <div class="text-sm text-gray-600 dark:text-gray-400">平均睡眠时长: <span id="avgSleepDuration" class="font-mono">-小时-分钟</span></div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">每日平均睡眠时长: <span id="avgSleepDuration" class="font-mono">-小时-分钟</span></div>
             <div class="text-sm text-gray-600 dark:text-gray-400">统计周期: <span id="statsDateRange" class="font-mono">----/--/-- ~ ----/--/--</span></div>
           </div>
         </div>
@@ -419,6 +419,187 @@
         }
       }
 
+      function updateWeeklyStats(records, recentDates) {
+        // 如果没有记录，显示无数据
+        if (!records || records.length < 2 || !recentDates || recentDates.length === 0) {
+          document.getElementById('avgSleepTime').textContent = '--:--';
+          document.getElementById('avgWakeTime').textContent = '--:--';
+          document.getElementById('avgSleepDuration').textContent = '-小时-分钟';
+          document.getElementById('statsDateRange').textContent = '无数据';
+          document.getElementById('statsTitle').textContent = '睡眠统计:';
+          return;
+        }
+        
+        // 首先按时间排序（从新到旧）
+        const sortedRecords = [...records].sort((a, b) => new Date(b.time) - new Date(a.time));
+        
+        // 找出最近的睡眠和唤醒周期
+        const recentCycles = [];
+        const now = new Date();
+        
+        // 使用提供的recentDates参数范围内的数据
+        const earliestAllowedDate = new Date(recentDates[recentDates.length - 1]);
+        earliestAllowedDate.setHours(0, 0, 0, 0); // 设置为当天开始时间
+        
+        const latestAllowedDate = new Date(recentDates[0]);
+        latestAllowedDate.setHours(23, 59, 59, 999); // 设置为当天结束时间
+        
+        // 按日期分组并找出每天的睡眠和唤醒时间
+        for (let i = 0; i < sortedRecords.length - 1; i++) {
+          const current = sortedRecords[i];
+          const next = sortedRecords[i + 1];
+          
+          // 如果当前是唤醒记录，下一个是睡眠记录，则这是一个完整的睡眠周期
+          if (current.action === 'wake' && next.action === 'sleep') {
+            const wakeTime = new Date(current.time);
+            const sleepTime = new Date(next.time);
+            
+            // 只处理指定日期范围内的数据
+            if (sleepTime >= earliestAllowedDate && wakeTime <= latestAllowedDate) {
+              const currentDate = wakeTime.toISOString().split('T')[0];
+              const durationMinutes = (wakeTime - sleepTime) / (60 * 1000); // 转换为分钟
+              
+              recentCycles.push({
+                sleepTime,
+                wakeTime,
+                duration: durationMinutes,
+                date: currentDate,
+                // 标记是否为主要睡眠（长于3小时且是当天第一次睡眠）
+                isPrimarySleep: durationMinutes >= 180 // 3小时 = 180分钟
+              });
+            }
+          }
+        }
+        
+        if (recentCycles.length === 0) {
+          document.getElementById('avgSleepTime').textContent = '--:--';
+          document.getElementById('avgWakeTime').textContent = '--:--';
+          document.getElementById('avgSleepDuration').textContent = '-小时-分钟';
+          document.getElementById('statsDateRange').textContent = '无数据';
+          document.getElementById('statsTitle').textContent = '睡眠统计:';
+          return;
+        }
+
+        // 计算统计周期的日期范围
+        let earliestDate = now;
+        let latestDate = new Date(0);
+        
+        recentCycles.forEach(cycle => {
+          if (cycle.sleepTime < earliestDate) {
+            earliestDate = new Date(cycle.sleepTime);
+          }
+          if (cycle.wakeTime > latestDate) {
+            latestDate = new Date(cycle.wakeTime);
+          }
+        });
+
+        // 按日期分组，找出每天的主要睡眠周期（第一段长睡眠）
+        const dailySleepCycles = {};
+        
+        // 首先按日期分组所有睡眠周期
+        recentCycles.forEach(cycle => {
+          const date = cycle.date;
+          if (!dailySleepCycles[date]) {
+            dailySleepCycles[date] = [];
+          }
+          dailySleepCycles[date].push(cycle);
+        });
+        
+        // 对每天的睡眠周期按时间排序（从早到晚）
+        Object.keys(dailySleepCycles).forEach(date => {
+          dailySleepCycles[date].sort((a, b) => a.sleepTime - b.sleepTime);
+          
+          // 标记每天的第一段长睡眠为主要睡眠
+          let foundPrimary = false;
+          dailySleepCycles[date].forEach(cycle => {
+            if (!foundPrimary && cycle.duration >= 180) { // 3小时 = 180分钟
+              cycle.isPrimarySleep = true;
+              foundPrimary = true;
+            } else {
+              cycle.isPrimarySleep = false;
+            }
+          });
+        });
+        
+        // 计算平均值
+        let totalSleepMinutes = 0;
+        let totalWakeMinutes = 0;
+        let totalDuration = 0;
+        let primarySleepCount = 0;
+        
+        // 计算每日总睡眠时长
+        const dailyTotalDurations = {};
+        
+        recentCycles.forEach(cycle => {
+          // 所有睡眠都计入每日总睡眠时长
+          const date = cycle.date;
+          if (!dailyTotalDurations[date]) {
+            dailyTotalDurations[date] = 0;
+          }
+          dailyTotalDurations[date] += cycle.duration;
+          
+          // 只有主要睡眠（长于3小时且是当天第一次睡眠）才计入入睡和清醒时间
+          if (cycle.isPrimarySleep) {
+            totalSleepMinutes += cycle.sleepTime.getHours() * 60 + cycle.sleepTime.getMinutes();
+            totalWakeMinutes += cycle.wakeTime.getHours() * 60 + cycle.wakeTime.getMinutes();
+            primarySleepCount++;
+          }
+        });
+        
+        // 计算每日平均睡眠时长
+        let totalDailyDuration = 0;
+        const daysWithSleep = Object.keys(dailyTotalDurations).length;
+        
+        Object.values(dailyTotalDurations).forEach(duration => {
+          totalDailyDuration += duration;
+        });
+        
+        // 计算平均值
+        const avgSleepMinutes = primarySleepCount > 0 ? Math.round(totalSleepMinutes / primarySleepCount) : 0;
+        const avgSleepHour = Math.floor(avgSleepMinutes / 60);
+        const avgSleepMinute = avgSleepMinutes % 60;
+
+        const avgWakeMinutes = primarySleepCount > 0 ? Math.round(totalWakeMinutes / primarySleepCount) : 0;
+        const avgWakeHour = Math.floor(avgWakeMinutes / 60);
+        const avgWakeMinute = avgWakeMinutes % 60;
+
+        const avgDailyDurationMinutes = daysWithSleep > 0 ? Math.round(totalDailyDuration / daysWithSleep) : 0;
+        const avgDailyDurationHours = Math.floor(avgDailyDurationMinutes / 60);
+        const avgDailyDurationMins = avgDailyDurationMinutes % 60;
+
+        // 格式化显示
+        document.getElementById('avgSleepTime').textContent = 
+          primarySleepCount > 0 ? `${String(avgSleepHour).padStart(2, '0')}:${String(avgSleepMinute).padStart(2, '0')}` : '--:--';
+        
+        document.getElementById('avgWakeTime').textContent = 
+          primarySleepCount > 0 ? `${String(avgWakeHour).padStart(2, '0')}:${String(avgWakeMinute).padStart(2, '0')}` : '--:--';
+        
+        document.getElementById('avgSleepDuration').textContent = 
+          daysWithSleep > 0 ? (avgDailyDurationHours === 0 ? `${avgDailyDurationMins}m` : `${avgDailyDurationHours}h${avgDailyDurationMins > 0 ? avgDailyDurationMins + 'm' : ''}`) : '-小时-分钟';
+
+        // 显示统计时间范围
+        const dateFormat = date => `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+        
+        // 更新标题和统计周期 - 直接使用recentDates的长度
+        const statsTitle = document.getElementById('statsTitle');
+        if (statsTitle) {
+          // 根据recentDates的长度动态调整标题，确保与离线记录部分一致
+          if (recentDates.length === 1) {
+            statsTitle.textContent = '单日统计:';
+          } else {
+            statsTitle.textContent = `近${recentDates.length}天统计:`;
+          }
+        }
+        
+        // 如果只有一天的数据，显示具体日期而不是日期范围
+        if (recentDates.length === 1) {
+          document.getElementById('statsDateRange').textContent = dateFormat(new Date(recentDates[0]));
+        } else {
+          document.getElementById('statsDateRange').textContent = 
+            `${dateFormat(earliestDate)} ~ ${dateFormat(latestDate)}`;
+        }
+      }
+
       function updateSleepTimelines() {
         fetch('https://sleep-status.shenghuo2.top/records')
           .then(response => {
@@ -437,9 +618,40 @@
             
             // 处理时间线显示
             const sleepSegments = calculateSleepSegments(data.records);
-            const dates = Object.keys(sleepSegments).sort().reverse();
-
-            dates.slice(0, 7).forEach(date => {
+            const allDates = Object.keys(sleepSegments).sort().reverse();
+            
+            // 找出最近连续的日期（允许最大间隔为3天）
+            const recentContinuousDates = [];
+            const maxDayGap = 3; // 允许的最大日期间隔（天）
+            
+            if (allDates.length > 0) {
+              recentContinuousDates.push(allDates[0]);
+              
+              for (let i = 1; i < allDates.length; i++) {
+                const currentDate = new Date(allDates[i]);
+                const previousDate = new Date(allDates[i-1]);
+                
+                // 计算日期间隔（天数）
+                const daysBetween = Math.round(
+                  (previousDate - currentDate) / (24 * 60 * 60 * 1000)
+                );
+                
+                // 如果日期间隔超过允许的最大间隔，停止收集
+                if (daysBetween > maxDayGap) {
+                  break;
+                }
+                
+                recentContinuousDates.push(allDates[i]);
+                
+                // 最多显示7天
+                if (recentContinuousDates.length >= 7) {
+                  break;
+                }
+              }
+            }
+            
+            // 显示时间线
+            recentContinuousDates.forEach(date => {
               const segments = sleepSegments[date].map(segment => ({
                 start: segment.start * 100 / 24,
                 end: segment.end * 100 / 24,
@@ -449,103 +661,38 @@
               container.appendChild(timeline);
             });
             
-            // 更新统计数据
-            updateWeeklyStats(data.records);
+            // 更新统计数据，传入连续日期数组，确保统计与显示的日期范围一致
+            updateWeeklyStats(data.records, recentContinuousDates);
             
-            document.getElementById('timelineDescription').textContent = 
-              dates.length ? `显示最近 ${Math.min(dates.length, 7)} 天的离线记录` : '暂无离线记录';
+            // 更新时间线标题和描述
+            const timelineTitle = document.getElementById('timelineTitle');
+            if (timelineTitle) {
+              if (recentContinuousDates.length === 0) {
+                timelineTitle.textContent = '离线记录:';
+              } else if (recentContinuousDates.length === 1) {
+                timelineTitle.textContent = '单日离线记录:';
+              } else {
+                timelineTitle.textContent = `近${recentContinuousDates.length}天离线记录:`;
+              }
+            }
+            
+            // 更新时间线描述
+            if (recentContinuousDates.length === 0) {
+              document.getElementById('timelineDescription').textContent = '暂无离线记录';
+            } else if (recentContinuousDates.length === 1) {
+              document.getElementById('timelineDescription').textContent = `显示 ${recentContinuousDates[0]} 的离线记录`;
+            } else {
+              const oldestDate = recentContinuousDates[recentContinuousDates.length - 1];
+              const newestDate = recentContinuousDates[0];
+              document.getElementById('timelineDescription').textContent = 
+                `显示 ${oldestDate} 至 ${newestDate} 的离线记录`;
+            }
           })
           .catch(error => {
             console.error('获取记录失败:', error);
             document.getElementById('timelineDescription').textContent = 
               '获取记录失败: ' + error.toString();
           });
-      }
-
-      function updateWeeklyStats(records) {
-        // 获取最近7天的记录
-        const now = new Date();
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        
-        // 按日期分组并找出每天的睡眠和唤醒时间
-        const dailyStats = {};
-        
-        for (let i = 0; i < records.length - 1; i++) {
-          const current = records[i];
-          const next = records[i + 1];
-          const currentTime = new Date(current.time);
-          
-          // 只处理最近7天的数据
-          if (currentTime < sevenDaysAgo) continue;
-          
-          // 如果当前是睡眠记录，下一个是唤醒记录，则这是一个完整的睡眠周期
-          if (current.action === 'sleep' && next.action === 'wake') {
-            const startTime = new Date(current.time);
-            const endTime = new Date(next.time);
-            const date = startTime.toISOString().split('T')[0];
-            
-            if (!dailyStats[date]) {
-              dailyStats[date] = [];
-            }
-            
-            dailyStats[date].push({
-              sleepTime: startTime,
-              wakeTime: endTime,
-              duration: (endTime - startTime) / (60 * 1000) // 转换为分钟
-            });
-          }
-        }
-
-        const dates = Object.keys(dailyStats);
-        if (dates.length === 0) {
-          document.getElementById('avgSleepTime').textContent = '--:--';
-          document.getElementById('avgWakeTime').textContent = '--:--';
-          document.getElementById('avgSleepDuration').textContent = '-小时-分钟';
-          document.getElementById('statsDateRange').textContent = '无数据';
-          return;
-        }
-
-        // 计算平均值
-        let totalSleepMinutes = 0;
-        let totalWakeMinutes = 0;
-        let totalDuration = 0;
-        let cycleCount = 0;
-
-        dates.forEach(date => {
-          dailyStats[date].forEach(cycle => {
-            totalSleepMinutes += cycle.sleepTime.getHours() * 60 + cycle.sleepTime.getMinutes();
-            totalWakeMinutes += cycle.wakeTime.getHours() * 60 + cycle.wakeTime.getMinutes();
-            totalDuration += cycle.duration;
-            cycleCount++;
-          });
-        });
-
-        const avgSleepMinutes = Math.round(totalSleepMinutes / cycleCount);
-        const avgSleepHour = Math.floor(avgSleepMinutes / 60);
-        const avgSleepMinute = avgSleepMinutes % 60;
-
-        const avgWakeMinutes = Math.round(totalWakeMinutes / cycleCount);
-        const avgWakeHour = Math.floor(avgWakeMinutes / 60);
-        const avgWakeMinute = avgWakeMinutes % 60;
-
-        const avgDurationMinutes = Math.round(totalDuration / cycleCount);
-        const avgDurationHours = Math.floor(avgDurationMinutes / 60);
-        const avgDurationMins = avgDurationMinutes % 60;
-
-        // 格式化显示
-        document.getElementById('avgSleepTime').textContent = 
-          `${String(avgSleepHour).padStart(2, '0')}:${String(avgSleepMinute).padStart(2, '0')}`;
-        
-        document.getElementById('avgWakeTime').textContent = 
-          `${String(avgWakeHour).padStart(2, '0')}:${String(avgWakeMinute).padStart(2, '0')}`;
-        
-        document.getElementById('avgSleepDuration').textContent = 
-          avgDurationHours === 0 ? `${avgDurationMins}m` : `${avgDurationHours}h${avgDurationMins > 0 ? avgDurationMins + 'm' : ''}`;
-
-        // 显示统计时间范围
-        const dateFormat = date => `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
-        document.getElementById('statsDateRange').textContent = 
-          `${dateFormat(sevenDaysAgo)} ~ ${dateFormat(now)}`;
       }
 
       document.addEventListener("DOMContentLoaded", () => {
