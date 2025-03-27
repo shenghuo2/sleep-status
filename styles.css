@@ -1,0 +1,59 @@
+.status-sleeping { color: #3498db; }
+.status-awake { color: #2ecc71; }
+.status-error { color: #e74c3c; }
+@media (prefers-color-scheme: dark) {
+  .status-sleeping { color: #60a5fa; }
+  .status-awake { color: #34d399; }
+  .status-error { color: #f87171; }
+}
+.offline-mode {
+  transition: all 0.5s ease;
+  filter: grayscale(70%) brightness(85%);
+}
+.floating-candle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  font-size: 2rem;
+  filter: drop-shadow(0 0 10px rgba(255, 200, 100, 0.3));
+  transition: transform 0.3s ease-out;
+}
+.candle-flame {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.2rem;
+  animation: flicker 1s ease-in-out infinite alternate;
+  color: #ffd700;
+  text-shadow: 0 0 10px #ff6b00,
+               0 0 20px #ff6b00,
+               0 0 30px #ff8800;
+}
+@keyframes flicker {
+  0%, 100% { 
+    transform: translateX(-50%) scale(1.1);
+    text-shadow: 0 0 10px #ff6b00,
+                 0 0 20px #ff6b00,
+                 0 0 30px #ff8800;
+  }
+  50% { 
+    transform: translateX(-50%) scale(0.9);
+    text-shadow: 0 0 5px #ff6b00,
+                 0 0 10px #ff6b00,
+                 0 0 15px #ff8800;
+  }
+}
+.offline-mode::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 50% 50%, rgba(0,0,0,0.3) 0%, transparent 80%),
+    linear-gradient(0deg, rgba(0,0,0,0.2) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 999;
+}
