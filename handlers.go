@@ -53,9 +53,9 @@ type SleepStats struct {
 type StatsResponse struct {
 	Success        bool       `json:"success"`
 	Stats          SleepStats `json:"stats"`
-	Days           int        `json:"days"`                   // 实际统计的天数
-	RequestDays    int        `json:"request_days,omitempty"` // 请求的天数，如果与实际天数不同才显示
-	Sleep          *bool      `json:"sleep,omitempty"`       // 当前睡眠状态，可选
+	Days           int        `json:"days"`                       // 实际统计的天数
+	RequestDays    int        `json:"request_days,omitempty"`     // 请求的天数，如果与实际天数不同才显示
+	Sleep          *bool      `json:"sleep,omitempty"`            // 当前睡眠状态，可选
 	CurrentSleepAt int64      `json:"current_sleep_at,omitempty"` // 当前睡眠开始时间（Unix 时间戳），仅当 sleep 为 true 时显示
 }
 
@@ -241,7 +241,7 @@ func StatsHandler(w http.ResponseWriter, r *http.Request) {
 	if showTimeStrParam == "1" || showTimeStrParam == "true" {
 		showTimeStr = true
 	}
-	
+
 	// 获取是否显示当前睡眠状态的参数，默认不显示
 	showSleep := false
 	showSleepParam := r.URL.Query().Get("show_sleep")
@@ -280,14 +280,14 @@ func StatsHandler(w http.ResponseWriter, r *http.Request) {
 	if stats.ActualDays != days {
 		response.RequestDays = days
 	}
-	
+
 	// 如果需要显示当前睡眠状态
 	if showSleep {
 		// 直接使用配置中的状态
 		sleepStatus := ConfigData.Sleep
 		response.Sleep = &sleepStatus
 	}
-	
+
 	// current_sleep_at 字段与 show_sleep 参数无关，只由 ConfigData.Sleep 控制
 	if ConfigData.Sleep {
 		// 获取最新的一条入睡记录
@@ -437,8 +437,8 @@ func calculateSleepStats(records []SleepRecord, requestedDays int, showTimeStr b
 		avgWakeMinutes = totalWakeMinutes / normalPeriodCount
 	}
 
-	// 对于所有睡眠周期（包括短时间睡眠），计算平均睡眠时长
-	avgDuration := totalDuration / len(periods)
+	// 先初始化平均睡眠时长变量
+	var avgDuration int
 
 	// 将分钟数转换回小时:分钟格式
 	avgSleepHour := (avgSleepMinutes % (24 * 60)) / 60
@@ -470,6 +470,14 @@ func calculateSleepStats(records []SleepRecord, requestedDays int, showTimeStr b
 		actualDays = 0
 	}
 
+	// 对于所有睡眠周期（包括短时间睡眠），计算每日平均睡眠时长
+	// 使用实际天数作为分母，而不是睡眠次数
+	if actualDays > 0 {
+		avgDuration = totalDuration / actualDays
+	} else {
+		avgDuration = 0
+	}
+
 	return SleepStats{
 		AvgSleepTime: avgSleepTimeStr,
 		AvgWakeTime:  avgWakeTimeStr,
@@ -497,8 +505,6 @@ func convertToUTC8(timeStr string) (time.Time, error) {
 	return t.In(loc), nil
 }
 
-
-
 // findLatestSleepRecord 查找最近的一条入睡记录
 func findLatestSleepRecord() (SleepRecord, error) {
 	// 读取所有睡眠记录
@@ -506,24 +512,24 @@ func findLatestSleepRecord() (SleepRecord, error) {
 	if err != nil {
 		return SleepRecord{}, err
 	}
-	
+
 	// 如果没有记录，返回错误
 	if len(records) == 0 {
 		return SleepRecord{}, fmt.Errorf("no sleep records found")
 	}
-	
+
 	// 将记录按时间排序（从新到旧）
 	sort.Slice(records, func(i, j int) bool {
 		return records[i].Time > records[j].Time
 	})
-	
+
 	// 找出最新的一条入睡记录
 	for _, record := range records {
 		if record.Action == "sleep" {
 			return record, nil
 		}
 	}
-	
+
 	// 如果没有找到入睡记录，返回错误
 	return SleepRecord{}, fmt.Errorf("no sleep record found")
 }
