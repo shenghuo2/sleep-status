@@ -25,6 +25,7 @@ func main() {
 	http.HandleFunc("/change", ChangeHandler)
 	http.HandleFunc("/heartbeat", HeartbeatHandler)
 	http.HandleFunc("/records", RecordsHandler)
+	http.HandleFunc("/sleep-stats", StatsHandler)
 
 	// Start heartbeat checker if enabled
 	if ConfigData.HeartbeatEnabled {
