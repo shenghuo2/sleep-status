@@ -146,188 +146,9 @@ function formatUTC8Time(date) {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
-function testTimeConversion() {
-  console.log('===== 时间转换测试 =====');
-  
-  const testTimes = [
-    "2025-03-26T16:25:59Z",      // UTC时间，应转为UTC+8的2025-03-27 00:25:59
-    "2025-03-27T00:05:55Z",      // UTC时间，应转为UTC+8的2025-03-27 08:05:55
-    "2025-03-26T08:08:52+08:00", // 已经是UTC+8，应保持不变
-    "2025-03-26T02:08:52+02:00"  // UTC+2时间，应转为UTC+8的2025-03-26 08:08:52
-  ];
-  
-  testTimes.forEach(time => {
-    const converted = convertToUTC8(time);
-    console.log(`${time} => ${converted.toISOString()}`);
-    console.log(`UTC+8时间: ${formatUTC8Time(converted)}`);
-  });
-  
-  console.log('===== 测试结束 =====');
-}
 
-function calculateSleepSegments(records) {
-  // 按日期分组记录
-  const recordsByDate = {};
-  
-  // 首先将所有记录转换为UTC+8时间
-  const utc8Records = records.map(record => {
-    const utc8Time = convertToUTC8(record.time);
-    // 提取日期部分作为分组键
-    const dateStr = utc8Time.toISOString().split('T')[0];
-    return {
-      ...record,
-      utc8Time,
-      dateStr
-    };
-  });
-  
-  // 将所有记录按时间排序（从早到晚）
-  const sortedRecords = [...utc8Records].sort((a, b) => a.utc8Time - b.utc8Time);
-  
-  // 找出所有的睡眠-唤醒对
-  const sleepWakePairs = [];
-  
-  for (let i = 0; i < sortedRecords.length - 1; i++) {
-    const current = sortedRecords[i];
-    const next = sortedRecords[i + 1];
-    
-    // 如果当前记录是睡眠，下一个是唤醒，则形成一对
-    if (current.action === 'sleep' && next.action === 'wake') {
-      const sleepTime = current.utc8Time;
-      const wakeTime = next.utc8Time;
-      
-      // 计算在24小时制中的位置（用于时间线显示）
-      const sleepHour = sleepTime.getUTCHours() + sleepTime.getUTCMinutes() / 60;
-      const wakeHour = wakeTime.getUTCHours() + wakeTime.getUTCMinutes() / 60;
-      
-      // 获取睡眠和唤醒的日期
-      const sleepDate = sleepTime.toISOString().split('T')[0];
-      const wakeDate = wakeTime.toISOString().split('T')[0];
-      
-      // 检查是否是跨日睡眠
-      const isCrossDaySleep = sleepDate !== wakeDate;
-      
-      sleepWakePairs.push({
-        sleepTime,
-        wakeTime,
-        sleepHour,
-        wakeHour,
-        sleepDate,
-        wakeDate,
-        isCrossDaySleep
-      });
-      
-      // 跳过已处理的唤醒记录
-      i++;
-    }
-  }
-  
-  // 初始化睡眠片段对象
-  const sleepSegments = {};
-  
-  // 处理每一对睡眠-唤醒记录
-  sleepWakePairs.forEach(pair => {
-    const { sleepTime, wakeTime, sleepHour, wakeHour, sleepDate, wakeDate, isCrossDaySleep } = pair;
-    
-    // 确保睡眠日期的键存在
-    if (!sleepSegments[sleepDate]) {
-      sleepSegments[sleepDate] = [];
-    }
-    
-    // 将睡眠片段添加到睡眠日期
-    if (isCrossDaySleep) {
-      // 跨日睡眠：在睡眠日期添加从睡眠时间到24:00的片段
-      sleepSegments[sleepDate].push({
-        start: sleepHour,
-        end: 24,
-        startTime: sleepTime,
-        endTime: wakeTime,
-        isCrossDaySleep: true
-      });
-      
-      // 确保唤醒日期的键存在
-      if (!sleepSegments[wakeDate]) {
-        sleepSegments[wakeDate] = [];
-      }
-      
-      // 在唤醒日期添加从00:00到唤醒时间的片段
-      sleepSegments[wakeDate].push({
-        start: 0,
-        end: wakeHour,
-        startTime: sleepTime,
-        endTime: wakeTime,
-        isCrossDaySleep: true,
-        isWakePart: true
-      });
-    } else {
-      // 非跨日睡眠：正常添加
-      sleepSegments[sleepDate].push({
-        start: sleepHour,
-        end: wakeHour,
-        startTime: sleepTime,
-        endTime: wakeTime,
-        isCrossDaySleep: false
-      });
-    }
-  });
-  
-  // 检查是否有未配对的睡眠记录（最后一个记录是睡眠）
-  const lastRecord = sortedRecords[sortedRecords.length - 1];
-  if (lastRecord && lastRecord.action === 'sleep') {
-    const sleepTime = lastRecord.utc8Time;
-    const sleepHour = sleepTime.getUTCHours() + sleepTime.getUTCMinutes() / 60;
-    const sleepDate = sleepTime.toISOString().split('T')[0];
-    
-    // 使用当前时间作为结束时间
-    const now = convertToUTC8(new Date().toISOString());
-    const today = now.toISOString().split('T')[0];
-    
-    // 确保睡眠日期的键存在
-    if (!sleepSegments[sleepDate]) {
-      sleepSegments[sleepDate] = [];
-    }
-    
-    if (sleepDate === today) {
-      // 如果是今天的记录，使用当前时间
-      const endHour = now.getUTCHours() + now.getUTCMinutes() / 60;
-      
-      sleepSegments[sleepDate].push({
-        start: sleepHour,
-        end: endHour,
-        startTime: sleepTime,
-        endTime: now,
-        isCrossDaySleep: false
-      });
-    } else {
-      // 如果是之前的记录，假设跨日睡眠
-      sleepSegments[sleepDate].push({
-        start: sleepHour,
-        end: 24,
-        startTime: sleepTime,
-        endTime: now,
-        isCrossDaySleep: true
-      });
-      
-      // 确保今天的键存在
-      if (!sleepSegments[today]) {
-        sleepSegments[today] = [];
-      }
-      
-      // 添加从00:00到当前时间的片段
-      const endHour = now.getUTCHours() + now.getUTCMinutes() / 60;
-      sleepSegments[today].push({
-        start: 0,
-        end: endHour,
-        startTime: sleepTime,
-        endTime: now,
-        isCrossDaySleep: true,
-        isWakePart: true
-      });
-    }
-  }
-  
-  return sleepSegments;
-}
+
+
 
 function createFloatingElements(sleep) {
   const candleContainer = document.getElementById('candleContainer');
@@ -457,6 +278,53 @@ function updateStatus() {
     });
 }
 
+/**
+ * 清空统计信息
+ */
+function clearStatistics() {
+  document.getElementById('avgSleepTime').textContent = '--:--';
+  document.getElementById('avgWakeTime').textContent = '--:--';
+  document.getElementById('avgSleepDuration').textContent = '-小时-分钟';
+  document.getElementById('statsDateRange').textContent = '无数据';
+  document.getElementById('statsTitle').textContent = '睡眠统计:';
+}
+
+/**
+ * 从 API 响应中更新睡眠统计信息
+ * @param {Object} data - 从 /sleep-stats 获取的数据
+ */
+function updateWeeklyStatsFromAPI(data) {
+  // 如果没有数据，显示无数据
+  if (!data.success || !data.stats) {
+    clearStatistics();
+    return;
+  }
+  
+  // 更新平均入睡和醒来时间
+  document.getElementById('avgSleepTime').textContent = data.stats.avg_sleep_time;
+  document.getElementById('avgWakeTime').textContent = data.stats.avg_wake_time;
+  
+  // 格式化平均睡眠时长
+  const avgMinutes = data.stats.avg_duration_minutes;
+  const avgHours = Math.floor(avgMinutes / 60);
+  const avgMins = avgMinutes % 60;
+  document.getElementById('avgSleepDuration').textContent = 
+    avgHours === 0 ? `${avgMins}分钟` : `${avgHours}小时${avgMins > 0 ? avgMins + '分钟' : ''}`;
+  
+  // 更新统计标题
+  const statsTitle = document.getElementById('statsTitle');
+  if (statsTitle) {
+    if (data.days === 1) {
+      statsTitle.textContent = '单日统计:';
+    } else {
+      statsTitle.textContent = `近${data.days}天统计:`;
+    }
+  }
+  
+  // 更新日期范围
+  document.getElementById('statsDateRange').textContent = `最近${data.days}天`;
+}
+
 function updateUIState(sleep) {
   const statusDiv = document.getElementById('status');
   const descDiv = document.getElementById('description');
@@ -479,252 +347,11 @@ function updateUIState(sleep) {
   }
 }
 
-function updateWeeklyStats(records, recentDates) {
-  // 如果没有记录，显示无数据
-  if (!records || records.length < 2 || !recentDates || recentDates.length === 0) {
-    document.getElementById('avgSleepTime').textContent = '--:--';
-    document.getElementById('avgWakeTime').textContent = '--:--';
-    document.getElementById('avgSleepDuration').textContent = '-小时-分钟';
-    document.getElementById('statsDateRange').textContent = '无数据';
-    document.getElementById('statsTitle').textContent = '睡眠统计:';
-    return;
-  }
-  
-  // 首先将所有记录转换为UTC+8时间并按时间排序（从早到晚）
-  const utc8Records = [...records].map(record => ({
-    ...record,
-    utc8Time: convertToUTC8(record.time)
-  })).sort((a, b) => a.utc8Time - b.utc8Time);
-  
-  // 将recentDates转换为UTC+8时间的日期对象
-  const utc8RecentDates = recentDates.map(date => {
-    const dateWithTime = date + 'T12:00:00Z';
-    return convertToUTC8(dateWithTime);
-  });
-  
-  // 使用提供的recentDates参数范围内的数据
-  const earliestAllowedDate = new Date(utc8RecentDates[utc8RecentDates.length - 1]);
-  earliestAllowedDate.setHours(0, 0, 0, 0);
-  
-  const latestAllowedDate = new Date(utc8RecentDates[0]);
-  latestAllowedDate.setHours(23, 59, 59, 999);
-  
-  // 找出所有的睡眠-唤醒对
-  const sleepWakePairs = [];
-  
-  for (let i = 0; i < utc8Records.length - 1; i++) {
-    const current = utc8Records[i];
-    const next = utc8Records[i + 1];
-    
-    if (current.action === 'sleep' && next.action === 'wake') {
-      const sleepTime = current.utc8Time;
-      const wakeTime = next.utc8Time;
-      
-      if (sleepTime >= earliestAllowedDate && wakeTime <= latestAllowedDate) {
-        const durationMinutes = Math.abs(wakeTime - sleepTime) / (60 * 1000);
-        
-        const isPrimary = durationMinutes >= 180;
-        
-        const sleepDate = sleepTime.toISOString().split('T')[0];
-        const wakeDate = wakeTime.toISOString().split('T')[0];
-        const isCrossDaySleep = sleepDate !== wakeDate;
-        
-        sleepWakePairs.push({
-          sleepTime,
-          wakeTime,
-          duration: durationMinutes,
-          sleepDate,
-          wakeDate,
-          isCrossDaySleep,
-          isPrimarySleep: isPrimary
-        });
-        
-        i++;
-      }
-    }
-  }
-  
-  if (sleepWakePairs.length === 0) {
-    document.getElementById('avgSleepTime').textContent = '--:--';
-    document.getElementById('avgWakeTime').textContent = '--:--';
-    document.getElementById('avgSleepDuration').textContent = '-小时-分钟';
-    document.getElementById('statsDateRange').textContent = '无数据';
-    document.getElementById('statsTitle').textContent = '睡眠统计:';
-    return;
-  }
-  
-  const dailySleepCycles = {};
-  
-  utc8RecentDates.forEach(date => {
-    const dateStr = date.toISOString().split('T')[0];
-    if (!dailySleepCycles[dateStr]) {
-      dailySleepCycles[dateStr] = [];
-    }
-  });
-  
-  sleepWakePairs.forEach(pair => {
-    if (!dailySleepCycles[pair.sleepDate]) {
-      dailySleepCycles[pair.sleepDate] = [];
-    }
-    dailySleepCycles[pair.sleepDate].push(pair);
-  });
-  
-  Object.keys(dailySleepCycles).forEach(date => {
-    dailySleepCycles[date].sort((a, b) => a.sleepTime - b.sleepTime);
-    
-    let foundPrimary = false;
-    dailySleepCycles[date].forEach(cycle => {
-      if (!foundPrimary && cycle.duration >= 180) {
-        cycle.isPrimarySleep = true;
-        foundPrimary = true;
-      } else {
-        cycle.isPrimarySleep = false;
-      }
-    });
-  });
-  
-  let totalAdjustedSleepHours = 0;
-  let totalWakeHours = 0;
-  let primarySleepCount = 0;
-  
-  const dailyTotalDurations = {};
-  
-  console.log("处理睡眠-唤醒对，计算平均时间：");
-  
-  sleepWakePairs.forEach(pair => {
-    // 只有主要睡眠（长于3小时的睡眠）才计入每日总睡眠时长
-    if (pair.isPrimarySleep) {
-      const date = pair.sleepDate;
-      if (!dailyTotalDurations[date]) {
-        dailyTotalDurations[date] = 0;
-      }
-      dailyTotalDurations[date] += pair.duration;
-      
-      // 只有主要睡眠才计入入睡和清醒时间
-      // 对于睡眠时间，直接使用24小时制中的小时数和分钟数
-      let sleepHour = pair.sleepTime.getUTCHours();
-      const sleepMinute = pair.sleepTime.getUTCMinutes();
-      
-      // 将睡眠时间转换为小时（带小数）
-      let sleepTimeInHours = sleepHour + sleepMinute / 60;
-      
-      // 如果睡眠时间在18:00以后，则将其视为"前一天的-小时"
-      if (sleepHour >= 18) {
-        sleepTimeInHours = sleepTimeInHours - 24;
-      }
-      
-      // 对于唤醒时间，保持正常计算
-      const wakeHour = pair.wakeTime.getUTCHours();
-      const wakeMinute = pair.wakeTime.getUTCMinutes();
-      const wakeTimeInHours = wakeHour + wakeMinute / 60;
-      
-      console.log(`睡眠记录: ${formatUTC8Time(pair.sleepTime)} - ${formatUTC8Time(pair.wakeTime)}`);
-      console.log(`  原始睡眠小时: ${sleepHour}:${sleepMinute} (${sleepHour + sleepMinute/60}小时)`);
-      console.log(`  调整后睡眠小时: ${sleepTimeInHours < 0 ? '-' : ''}${Math.floor(Math.abs(sleepTimeInHours))}:${Math.round(Math.abs(sleepTimeInHours - Math.floor(sleepTimeInHours)) * 60)}`);
-      console.log(`  唤醒小时: ${wakeHour}:${wakeMinute} (${wakeTimeInHours}小时)`);
-      console.log(`  持续时间: ${pair.duration}分钟`);
-      
-      totalAdjustedSleepHours += sleepTimeInHours;
-      totalWakeHours += wakeTimeInHours;
-      primarySleepCount++;
-      
-      console.log(`  累计睡眠小时: ${totalAdjustedSleepHours}, 累计唤醒小时: ${totalWakeHours}, 计数: ${primarySleepCount}`);
-    }
-  });
-  
-  // 计算每日平均睡眠时长
-  let totalDailyDuration = 0;
-  const daysWithSleep = Object.keys(dailyTotalDurations).length;
-  
-  Object.values(dailyTotalDurations).forEach(duration => {
-    totalDailyDuration += duration;
-  });
-  
-  // 计算平均值
-  const avgSleepHours = primarySleepCount > 0 ? totalAdjustedSleepHours / primarySleepCount : 0;
-  console.log(`平均睡眠小时(调整后): ${avgSleepHours}`);
-  
-  // 处理负数小时的情况（晚上的时间）
-  let displayAvgSleepHours = avgSleepHours;
-  if (displayAvgSleepHours < 0) {
-    // 将负数小时转换为24小时制的晚上时间
-    displayAvgSleepHours += 24;
-    console.log(`显示用的平均睡眠小时(调整后): ${displayAvgSleepHours}`);
-  }
-  
-  // 将小时转换为小时和分钟
-  let avgSleepHour = Math.floor(displayAvgSleepHours);
-  let avgSleepMinute = Math.round((displayAvgSleepHours - avgSleepHour) * 60);
-  
-  // 处理分钟为60的情况
-  if (avgSleepMinute === 60) {
-    avgSleepMinute = 0;
-    avgSleepHour += 1;
-    if (avgSleepHour === 24) {
-      avgSleepHour = 0;
-    }
-  }
-  
-  console.log(`最终平均睡眠时间: ${avgSleepHour}:${avgSleepMinute}`);
 
-  const avgWakeHours = primarySleepCount > 0 ? totalWakeHours / primarySleepCount : 0;
-  console.log(`平均唤醒小时: ${avgWakeHours}`);
-  
-  // 将小时转换为小时和分钟
-  let avgWakeHour = Math.floor(avgWakeHours);
-  let avgWakeMinute = Math.round((avgWakeHours - avgWakeHour) * 60);
-  
-  // 处理分钟为60的情况
-  if (avgWakeMinute === 60) {
-    avgWakeMinute = 0;
-    avgWakeHour += 1;
-    if (avgWakeHour === 24) {
-      avgWakeHour = 0;
-    }
-  }
-  
-  // 处理可能的溢出
-  if (avgWakeHour >= 24) {
-    avgWakeHour %= 24;
-  }
-  
-  document.getElementById('avgSleepTime').textContent = 
-    primarySleepCount > 0 ? `${String(avgSleepHour).padStart(2, '0')}:${String(avgSleepMinute).padStart(2, '0')}` : '--:--';
-  
-  document.getElementById('avgWakeTime').textContent = 
-    primarySleepCount > 0 ? `${String(avgWakeHour).padStart(2, '0')}:${String(avgWakeMinute).padStart(2, '0')}` : '--:--';
-  
-  const avgDailyDurationMinutes = daysWithSleep > 0 ? Math.round(totalDailyDuration / daysWithSleep) : 0;
-  const avgDailyDurationHours = Math.floor(avgDailyDurationMinutes / 60);
-  const avgDailyDurationMins = avgDailyDurationMinutes % 60;
-
-  document.getElementById('avgSleepDuration').textContent = 
-    daysWithSleep > 0 ? (avgDailyDurationHours === 0 ? `${avgDailyDurationMins}m` : `${avgDailyDurationHours}h${avgDailyDurationMins > 0 ? avgDailyDurationMins + 'm' : ''}`) : '-小时-分钟';
-  
-  const dateFormat = date => `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
-  
-  const statsTitle = document.getElementById('statsTitle');
-  if (statsTitle) {
-    if (recentDates.length === 1) {
-      statsTitle.textContent = '单日统计:';
-    } else {
-      statsTitle.textContent = `近${recentDates.length}天统计:`;
-    }
-  }
-  
-  if (recentDates.length === 1) {
-    const utc8Date = convertToUTC8(recentDates[0] + 'T12:00:00Z');
-    document.getElementById('statsDateRange').textContent = dateFormat(utc8Date);
-  } else {
-    const oldestDate = convertToUTC8(recentDates[recentDates.length - 1] + 'T12:00:00Z');
-    const newestDate = convertToUTC8(recentDates[0] + 'T12:00:00Z');
-    document.getElementById('statsDateRange').textContent = 
-      `${dateFormat(oldestDate)} ~ ${dateFormat(newestDate)}`;
-  }
-}
 
 function updateSleepTimelines() {
-  fetch(`${API_URL}/records`)
+  // 使用 /sleep-stats 接口获取睡眠统计数据
+  fetch(`${API_URL}/sleep-stats?days=7&show_time_str=0&show_sleep=1`)
     .then(response => {
       if (!response.ok) {
         throw new Error('网络响应不正常');
@@ -732,16 +359,112 @@ function updateSleepTimelines() {
       return response.json();
     })
     .then(data => {
-      if (!data.success || !Array.isArray(data.records)) {
+      if (!data.success || !data.stats || !data.stats.periods) {
         throw new Error('无效的数据格式');
       }
 
       const container = document.getElementById('sleepTimelines');
       container.innerHTML = '';
       
-      const sleepSegments = calculateSleepSegments(data.records);
+      // 按日期分组睡眠周期
+      const sleepSegmentsByDate = {};
       
-      const allDates = Object.keys(sleepSegments).sort().reverse();
+      // 处理每个睡眠周期
+      data.stats.periods.forEach(period => {
+        // 将时间戳转换为 UTC+8 时间
+        const sleepTime = convertToUTC8(new Date(period.sleep_time * 1000));
+        const wakeTime = convertToUTC8(new Date(period.wake_time * 1000));
+        
+        // 获取日期字符串（YYYY-MM-DD 格式）
+        const sleepDate = sleepTime.toISOString().split('T')[0];
+        
+        // 如果该日期还没有记录，创建一个空数组
+        if (!sleepSegmentsByDate[sleepDate]) {
+          sleepSegmentsByDate[sleepDate] = [];
+        }
+        
+        // 计算 24 小时制中的开始和结束时间（用于时间线显示）
+        const sleepHour = sleepTime.getUTCHours() + sleepTime.getUTCMinutes() / 60;
+        const wakeHour = wakeTime.getUTCHours() + wakeTime.getUTCMinutes() / 60;
+        
+        // 添加睡眠段
+        sleepSegmentsByDate[sleepDate].push({
+          sleepTime,
+          wakeTime,
+          sleepHour,
+          wakeHour,
+          duration: period.duration_minutes / 60, // 转换为小时
+          isShort: period.is_short || false
+        });
+      });
+      
+      // 如果当前正在睡眠，添加当前睡眠段
+      if (data.sleep && data.current_sleep_at) {
+        const currentSleepTime = convertToUTC8(new Date(data.current_sleep_at * 1000));
+        const now = convertToUTC8(new Date());
+        
+        const sleepDate = currentSleepTime.toISOString().split('T')[0];
+        const currentDate = now.toISOString().split('T')[0];
+        
+        // 计算睡眠时长（小时）
+        const durationHours = (now - currentSleepTime) / (1000 * 60 * 60);
+        
+        // 计算 24 小时制中的开始时间
+        const sleepHour = currentSleepTime.getUTCHours() + currentSleepTime.getUTCMinutes() / 60;
+        const nowHour = now.getUTCHours() + now.getUTCMinutes() / 60;
+        
+        // 如果该日期还没有记录，创建一个空数组
+        if (!sleepSegmentsByDate[sleepDate]) {
+          sleepSegmentsByDate[sleepDate] = [];
+        }
+        
+        // 添加当前睡眠段
+        if (sleepDate === currentDate) {
+          // 同一天的睡眠
+          sleepSegmentsByDate[sleepDate].push({
+            sleepTime: currentSleepTime,
+            wakeTime: now,
+            sleepHour,
+            wakeHour: nowHour,
+            duration: durationHours,
+            isShort: durationHours < 3,
+            isCurrent: true
+          });
+        } else {
+          // 跨天睡眠
+          // 添加第一天的睡眠段（从睡眠时间到午夜）
+          sleepSegmentsByDate[sleepDate].push({
+            sleepTime: currentSleepTime,
+            wakeTime: now,
+            sleepHour,
+            wakeHour: 24,
+            duration: (24 - sleepHour),
+            isShort: false,
+            isCurrent: true,
+            isCrossDaySleep: true
+          });
+          
+          // 如果当前日期还没有记录，创建一个空数组
+          if (!sleepSegmentsByDate[currentDate]) {
+            sleepSegmentsByDate[currentDate] = [];
+          }
+          
+          // 添加当前日期的睡眠段（从午夜到现在）
+          sleepSegmentsByDate[currentDate].push({
+            sleepTime: currentSleepTime,
+            wakeTime: now,
+            sleepHour: 0,
+            wakeHour: nowHour,
+            duration: nowHour,
+            isShort: false,
+            isCurrent: true,
+            isCrossDaySleep: true
+          });
+        }
+      }
+      
+      // 获取所有日期并按降序排序（最近的日期在前）
+      const allDates = Object.keys(sleepSegmentsByDate).sort().reverse();
       
       const recentContinuousDates = [];
       const maxDayGap = 3;
@@ -770,16 +493,24 @@ function updateSleepTimelines() {
       }
       
       recentContinuousDates.forEach(date => {
-        const segments = sleepSegments[date].map(segment => {
-          const startFormatted = formatUTC8Time(segment.startTime);
-          const endFormatted = formatUTC8Time(segment.endTime);
+        const segments = sleepSegmentsByDate[date].map(segment => {
+          const startFormatted = formatUTC8Time(segment.sleepTime);
+          const endFormatted = segment.isCurrent ? '现在' : formatUTC8Time(segment.wakeTime);
           
-          const durationHours = (segment.endTime - segment.startTime) / (1000 * 60 * 60);
+          // 处理跨天的情况
+          let start = segment.sleepHour;
+          let end = segment.wakeHour;
+          
+          // 如果结束时间小于开始时间，说明跨天了
+          if (end < start) {
+            end += 24; // 将结束时间调整为第二天
+          }
           
           return {
-            start: segment.start * 100 / 24,
-            end: segment.end * 100 / 24,
-            text: `${startFormatted}-${endFormatted} (${formatDuration(durationHours)})`
+            start: start * 100 / 24,
+            end: end * 100 / 24,
+            text: `${startFormatted}-${endFormatted} (${formatDuration(segment.duration)})`,
+            isCurrent: segment.isCurrent
           };
         });
         
@@ -787,7 +518,8 @@ function updateSleepTimelines() {
         container.appendChild(timeline);
       });
       
-      updateWeeklyStats(data.records, recentContinuousDates);
+      // 更新统计信息
+      updateWeeklyStatsFromAPI(data);
       
       const timelineTitle = document.getElementById('timelineTitle');
       if (timelineTitle) {
@@ -812,16 +544,18 @@ function updateSleepTimelines() {
       }
     })
     .catch(error => {
-      console.error('获取记录失败:', error);
+      console.error('获取睡眠数据失败:', error);
       document.getElementById('timelineDescription').textContent = 
-        '获取记录失败: ' + error.toString();
+        '获取睡眠数据失败: ' + error.toString();
+      
+      // 清空统计信息
+      clearStatistics();
     });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   initConfig();
   
-  testTimeConversion();
   
   updateStatus();
   updateSleepTimelines();
