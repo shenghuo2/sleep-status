@@ -94,7 +94,8 @@ function createTimelineElement(date, segments) {
     const segmentElement = document.createElement('div');
     segmentElement.className = 
       'absolute h-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center ' +
-      'text-xs text-gray-600 dark:text-gray-300 transition-all duration-300 z-20';
+      'text-xs text-gray-600 dark:text-gray-300 transition-all duration-300 z-20 ' +
+      (segment.cssClass || '');
     segmentElement.style.left = segment.start + '%';
     segmentElement.style.width = (segment.end - segment.start) + '%';
     
@@ -377,25 +378,84 @@ function updateSleepTimelines() {
         
         // 获取日期字符串（YYYY-MM-DD 格式）
         const sleepDate = sleepTime.toISOString().split('T')[0];
+        const wakeDate = wakeTime.toISOString().split('T')[0];
         
-        // 如果该日期还没有记录，创建一个空数组
-        if (!sleepSegmentsByDate[sleepDate]) {
-          sleepSegmentsByDate[sleepDate] = [];
-        }
+        // 检查是否是跨天睡眠
+        const isCrossDaySleep = sleepDate !== wakeDate;
         
         // 计算 24 小时制中的开始和结束时间（用于时间线显示）
         const sleepHour = sleepTime.getUTCHours() + sleepTime.getUTCMinutes() / 60;
         const wakeHour = wakeTime.getUTCHours() + wakeTime.getUTCMinutes() / 60;
         
-        // 添加睡眠段
-        sleepSegmentsByDate[sleepDate].push({
-          sleepTime,
-          wakeTime,
-          sleepHour,
-          wakeHour,
-          duration: period.duration_minutes / 60, // 转换为小时
-          isShort: period.is_short || false
-        });
+        // 计算睡眠时长（小时）
+        const durationHours = period.duration_minutes / 60;
+        
+        if (isCrossDaySleep) {
+          // 跨天睡眠需要分别处理两天的片段
+          
+          // 第一天的睡眠时长（从入睡到午夜）
+          const firstDayDuration = (24 - sleepHour);
+          
+          // 第二天的睡眠时长（从午夜到醒来）
+          const secondDayDuration = wakeHour;
+          
+          // 确定哪一天的睡眠时间更长（用于决定显示文字的位置）
+          const firstDayIsLonger = firstDayDuration > secondDayDuration;
+          
+          // 确保第一天的日期键存在
+          if (!sleepSegmentsByDate[sleepDate]) {
+            sleepSegmentsByDate[sleepDate] = [];
+          }
+          
+          // 添加第一天的睡眠段（从睡眠时间到午夜）
+          sleepSegmentsByDate[sleepDate].push({
+            sleepTime,
+            wakeTime,
+            sleepHour,
+            wakeHour: 24,  // 到午夜
+            duration: firstDayDuration,
+            isShort: period.is_short || false,
+            isCrossDaySleep: true,
+            isFirstDay: true,
+            showText: firstDayIsLonger  // 如果第一天时间更长，则在这里显示文字
+          });
+          
+          // 确保第二天的日期键存在
+          if (!sleepSegmentsByDate[wakeDate]) {
+            sleepSegmentsByDate[wakeDate] = [];
+          }
+          
+          // 添加第二天的睡眠段（从午夜到醒来时间）
+          sleepSegmentsByDate[wakeDate].push({
+            sleepTime,
+            wakeTime,
+            sleepHour: 0,  // 从午夜开始
+            wakeHour,
+            duration: secondDayDuration,
+            isShort: period.is_short || false,
+            isCrossDaySleep: true,
+            isFirstDay: false,
+            showText: !firstDayIsLonger  // 如果第二天时间更长，则在这里显示文字
+          });
+        } else {
+          // 非跨天睡眠，正常处理
+          // 如果该日期还没有记录，创建一个空数组
+          if (!sleepSegmentsByDate[sleepDate]) {
+            sleepSegmentsByDate[sleepDate] = [];
+          }
+          
+          // 添加睡眠段
+          sleepSegmentsByDate[sleepDate].push({
+            sleepTime,
+            wakeTime,
+            sleepHour,
+            wakeHour,
+            duration: durationHours,
+            isShort: period.is_short || false,
+            isCrossDaySleep: false,
+            showText: true  // 非跨天睡眠总是显示文字
+          });
+        }
       });
       
       // 如果当前正在睡眠，添加当前睡眠段
@@ -428,20 +488,34 @@ function updateSleepTimelines() {
             wakeHour: nowHour,
             duration: durationHours,
             isShort: durationHours < 3,
-            isCurrent: true
+            isCurrent: true,
+            isCrossDaySleep: false,
+            showText: true  // 非跨天睡眠总是显示文字
           });
         } else {
           // 跨天睡眠
+          
+          // 第一天的睡眠时长（从入睡到午夜）
+          const firstDayDuration = (24 - sleepHour);
+          
+          // 第二天的睡眠时长（从午夜到现在）
+          const secondDayDuration = nowHour;
+          
+          // 确定哪一天的睡眠时间更长（用于决定显示文字的位置）
+          const firstDayIsLonger = firstDayDuration > secondDayDuration;
+          
           // 添加第一天的睡眠段（从睡眠时间到午夜）
           sleepSegmentsByDate[sleepDate].push({
             sleepTime: currentSleepTime,
             wakeTime: now,
             sleepHour,
             wakeHour: 24,
-            duration: (24 - sleepHour),
+            duration: firstDayDuration,
             isShort: false,
             isCurrent: true,
-            isCrossDaySleep: true
+            isCrossDaySleep: true,
+            isFirstDay: true,
+            showText: firstDayIsLonger  // 如果第一天时间更长，则在这里显示文字
           });
           
           // 如果当前日期还没有记录，创建一个空数组
@@ -455,10 +529,12 @@ function updateSleepTimelines() {
             wakeTime: now,
             sleepHour: 0,
             wakeHour: nowHour,
-            duration: nowHour,
+            duration: secondDayDuration,
             isShort: false,
             isCurrent: true,
-            isCrossDaySleep: true
+            isCrossDaySleep: true,
+            isFirstDay: false,
+            showText: !firstDayIsLonger  // 如果第二天时间更长，则在这里显示文字
           });
         }
       }
@@ -506,11 +582,20 @@ function updateSleepTimelines() {
             end += 24; // 将结束时间调整为第二天
           }
           
+          // 决定是否显示文字（对于跨天睡眠，只在一个片段上显示文字）
+          const displayText = segment.showText ? `${startFormatted}-${endFormatted} (${formatDuration(segment.duration)})` : '';
+          
+          // 对于跨天睡眠，根据是第一天还是第二天来调整显示文字
+          const segmentClass = segment.isCrossDaySleep ? 
+            (segment.isFirstDay ? 'first-day-segment' : 'second-day-segment') : 
+            'normal-segment';
+          
           return {
             start: start * 100 / 24,
             end: end * 100 / 24,
-            text: `${startFormatted}-${endFormatted} (${formatDuration(segment.duration)})`,
-            isCurrent: segment.isCurrent
+            text: displayText,
+            isCurrent: segment.isCurrent,
+            cssClass: segmentClass
           };
         });
         
