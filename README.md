@@ -199,6 +199,60 @@ services:
      }
      ```
 
+   - 获取睡眠统计数据：
+
+     ```sh
+     curl http://<host>:<port>/sleep-stats[?days=7&show_time_str=0]
+     ```
+
+     参数说明：
+     - `days`：可选，统计的天数范围，默认为7天
+     - `show_time_str`：可选，是否显示原始时间字符串，1表示显示，0表示不显示，默认为0
+
+     响应示例：
+
+     ```json
+     {
+       "success": true,
+       "stats": {
+         "avg_sleep_time": "23:30",
+         "avg_wake_time": "07:15",
+         "avg_duration_minutes": 465,
+         "periods": [
+           {
+             "sleep_time": 1711382400,
+             "wake_time": 1711407600,
+             "duration_minutes": 470
+           },
+           {
+             "sleep_time": 1711468800,
+             "wake_time": 1711493100,
+             "duration_minutes": 405,
+             "is_short": true
+           }
+         ]
+       },
+       "days": 2,
+       "request_days": 7
+     }
+     ```
+
+     字段说明：
+     - `avg_sleep_time`：平均入睡时间（HH:MM格式）
+     - `avg_wake_time`：平均醒来时间（HH:MM格式）
+     - `avg_duration_minutes`：平均睡眠时长（分钟）
+     - `periods`：睡眠周期列表
+       - `sleep_time`：入睡时间（Unix时间戳，秒）
+       - `wake_time`：醒来时间（Unix时间戳，秒）
+       - `duration_minutes`：睡眠时长（分钟）
+       - `is_short`：是否为短睡眠（小于3小时），仅当为短睡眠时才显示此字段
+     - `days`：实际统计的天数
+     - `request_days`：请求的天数，仅当与实际天数不同时才显示
+
+     注意：
+     - 短睡眠段（小于3小时）不计入平均入睡和醒来时间的计算，但会计入平均睡眠时长
+     - 当数据不足时，`days`字段会显示实际的天数范围，而不是请求的天数
+
    - 修改 `sleep` 状态：
 
      ```sh
@@ -273,6 +327,19 @@ https://github.com/shenghuo2/sleep-status-sender
 [在线示例](https://blog.shenghuo2.top/test)
 
 ## 更新日志
+
+### v0.1.3 (2025-03-28)
+- 新功能
+  - 添加 `/sleep-stats` API 用于获取睡眠统计数据
+  - 支持计算平均入睡时间、醒来时间和睡眠时长
+  - 支持展示成对的睡眠周期（使用 Unix 时间戳）
+- 改进
+  - 支持短睡眠时间段（小于3小时）的处理
+  - 当数据不足时，自动调整实际统计的天数
+  - 可选是否显示原始时间字符串，默认不显示
+- 代码优化
+  - 改进了时区处理，正确处理 UTC 和本地时间转换
+  - 优化了睡眠数据的计算逻辑
 
 ### v0.1.2 (2025-02-27)
 - 修复问题

@@ -142,6 +142,60 @@ The service will start on port 8000. Use `docker logs sleep-status` to view the 
       }
       ```
 
+    - Get sleep statistics:
+
+      ```sh
+      curl http://<host>:<port>/sleep-stats[?days=7&show_time_str=0]
+      ```
+
+      Parameter description:
+      - `days`: Optional, the number of days to analyze, default is 7 days
+      - `show_time_str`: Optional, whether to display original time strings, 1 for display, 0 for hide, default is 0
+
+      Example response:
+
+      ```json
+      {
+        "success": true,
+        "stats": {
+          "avg_sleep_time": "23:30",
+          "avg_wake_time": "07:15",
+          "avg_duration_minutes": 465,
+          "periods": [
+            {
+              "sleep_time": 1711382400,
+              "wake_time": 1711407600,
+              "duration_minutes": 470
+            },
+            {
+              "sleep_time": 1711468800,
+              "wake_time": 1711493100,
+              "duration_minutes": 405,
+              "is_short": true
+            }
+          ]
+        },
+        "days": 2,
+        "request_days": 7
+      }
+      ```
+
+      Field description:
+      - `avg_sleep_time`: Average sleep time (HH:MM format)
+      - `avg_wake_time`: Average wake time (HH:MM format)
+      - `avg_duration_minutes`: Average sleep duration (minutes)
+      - `periods`: List of sleep periods
+        - `sleep_time`: Sleep time (Unix timestamp, seconds)
+        - `wake_time`: Wake time (Unix timestamp, seconds)
+        - `duration_minutes`: Sleep duration (minutes)
+        - `is_short`: Whether it's a short sleep (less than 3 hours), only shown for short sleeps
+      - `days`: Actual number of days analyzed
+      - `request_days`: Requested number of days, only shown when different from actual days
+
+      Notes:
+      - Short sleep periods (less than 3 hours) are not included in average sleep and wake time calculations, but are included in average duration
+      - When there's insufficient data, the `days` field shows the actual range of days, not the requested number
+
     - Modify the `sleep` status:
 
       ```sh
@@ -221,6 +275,19 @@ There is also a settings page where users can configure the server's BASE_URL an
 # Others
 
 ## Changelog
+
+### v0.1.3 (2025-03-28)
+- New Features
+  - Added `/sleep-stats` API for retrieving sleep statistics
+  - Support for calculating average sleep time, wake time, and sleep duration
+  - Support for displaying paired sleep periods (using Unix timestamps)
+- Improvements
+  - Support for handling short sleep periods (less than 3 hours)
+  - Automatic adjustment of actual days analyzed when data is insufficient
+  - Optional display of original time strings, hidden by default
+- Code Optimization
+  - Improved timezone handling for correct UTC and local time conversion
+  - Optimized sleep data calculation logic
 
 ### v0.1.2 (2025-02-27)
 - Bug Fixes
