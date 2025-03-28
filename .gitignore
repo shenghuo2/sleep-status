@@ -1,1 +1,5 @@
 .DS_Store
+access.log
+config.json
+sleep_record.json
+sleep-status
