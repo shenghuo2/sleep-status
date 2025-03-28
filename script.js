@@ -6,6 +6,9 @@ const REPO_URL = "https://github.com/shenghuo2/sleep-status";
 const MODULE_URL = "https://github.com/shenghuo2/sleep-status/tree/feature/magisk-module";
 const FRONTEND_URL = "https://github.com/shenghuo2/sleep-status/tree/feature/example-frontend";
 const INFO_FROM = "Xiaomi 14 设备在线状态";
+// 统计周期（天数）
+// 注意：设置过大的值可能会影响性能和显示效果
+const STATS_DAYS = 7;
 // =================== 配置 ===================
 
 function formatTime(hours) {
@@ -352,7 +355,7 @@ function updateUIState(sleep) {
 
 function updateSleepTimelines() {
   // 使用 /sleep-stats 接口获取睡眠统计数据
-  fetch(`${API_URL}/sleep-stats?days=7&show_time_str=0&show_sleep=1`)
+  fetch(`${API_URL}/sleep-stats?days=${STATS_DAYS}&show_time_str=0&show_sleep=1`)
     .then(response => {
       if (!response.ok) {
         throw new Error('网络响应不正常');
@@ -562,7 +565,7 @@ function updateSleepTimelines() {
           
           recentContinuousDates.push(allDates[i]);
           
-          if (recentContinuousDates.length >= 7) {
+          if (recentContinuousDates.length >= STATS_DAYS) {
             break;
           }
         }
@@ -613,6 +616,7 @@ function updateSleepTimelines() {
         } else if (recentContinuousDates.length === 1) {
           timelineTitle.textContent = '单日离线记录:';
         } else {
+          // 使用实际显示的天数，而不是配置的天数
           timelineTitle.textContent = `近${recentContinuousDates.length}天离线记录:`;
         }
       }
