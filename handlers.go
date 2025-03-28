@@ -46,13 +46,15 @@ type SleepStats struct {
 	AvgWakeTime  string        `json:"avg_wake_time"`
 	AvgDuration  int           `json:"avg_duration_minutes"`
 	Periods      []SleepPeriod `json:"periods"`
+	ActualDays   int           `json:"-"` // 实际包含的天数，不输出到JSON
 }
 
 // StatsResponse 结构体保存睡眠统计响应
 type StatsResponse struct {
-	Success bool       `json:"success"`
-	Stats   SleepStats `json:"stats"`
-	Days    int        `json:"days"`
+	Success     bool       `json:"success"`
+	Stats       SleepStats `json:"stats"`
+	Days        int        `json:"days"`                   // 实际统计的天数
+	RequestDays int        `json:"request_days,omitempty"` // 请求的天数，如果与实际天数不同才显示
 }
 
 // StatusHandler handles the /status route and returns the current sleep status
@@ -230,7 +232,7 @@ func StatsHandler(w http.ResponseWriter, r *http.Request) {
 			days = parsedDays
 		}
 	}
-	
+
 	// 获取是否显示原始时间字符串的参数，默认不显示
 	showTimeStr := false
 	showTimeStrParam := r.URL.Query().Get("show_time_str")
@@ -257,11 +259,24 @@ func StatsHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 返回统计数据
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(StatsResponse{Success: true, Stats: stats, Days: days})
+
+	// 构建响应
+	response := StatsResponse{
+		Success: true,
+		Stats:   stats,
+		Days:    stats.ActualDays,
+	}
+
+	// 如果实际天数与请求天数不同，则显示请求天数
+	if stats.ActualDays != days {
+		response.RequestDays = days
+	}
+
+	json.NewEncoder(w).Encode(response)
 }
 
 // calculateSleepStats 计算睡眠统计数据
-func calculateSleepStats(records []SleepRecord, days int, showTimeStr bool) (SleepStats, error) {
+func calculateSleepStats(records []SleepRecord, requestedDays int, showTimeStr bool) (SleepStats, error) {
 	// 将记录按时间排序（从旧到新）
 	sort.Slice(records, func(i, j int) bool {
 		return records[i].Time < records[j].Time
@@ -273,7 +288,7 @@ func calculateSleepStats(records []SleepRecord, days int, showTimeStr bool) (Sle
 
 	// 当前时间，用于计算天数限制
 	now := time.Now()
-	cutoffTime := now.AddDate(0, 0, -days)
+	cutoffTime := now.AddDate(0, 0, -requestedDays)
 
 	for i := 0; i < len(records); i++ {
 		record := records[i]
@@ -315,13 +330,13 @@ func calculateSleepStats(records []SleepRecord, days int, showTimeStr bool) (Sle
 					Duration:  duration,
 					IsShort:   isShort,
 				}
-				
+
 				// 如果需要显示原始时间字符串，则添加相应字段
 				if showTimeStr {
 					period.SleepTimeStr = sleepTime
 					period.WakeTimeStr = record.Time
 				}
-				
+
 				periods = append(periods, period)
 			}
 
@@ -406,11 +421,31 @@ func calculateSleepStats(records []SleepRecord, days int, showTimeStr bool) (Sle
 	avgSleepTimeStr := fmt.Sprintf("%02d:%02d", avgSleepHour, avgSleepMinute)
 	avgWakeTimeStr := fmt.Sprintf("%02d:%02d", avgWakeHour, avgWakeMinute)
 
+	// 计算实际的天数范围
+	var actualDays int
+	if len(periods) > 0 {
+		// 找出最早和最晚的睡眠记录时间
+		earliest := time.Unix(periods[0].SleepTime, 0)
+		latest := time.Unix(periods[len(periods)-1].WakeTime, 0)
+
+		// 计算实际跨越的天数
+		duration := latest.Sub(earliest)
+		actualDays = int(duration.Hours()/24) + 1 // 加 1 是因为包含当天
+
+		// 如果实际天数为 0（同一天内的记录），设置为 1
+		if actualDays < 1 {
+			actualDays = 1
+		}
+	} else {
+		actualDays = 0
+	}
+
 	return SleepStats{
 		AvgSleepTime: avgSleepTimeStr,
 		AvgWakeTime:  avgWakeTimeStr,
 		AvgDuration:  avgDuration,
 		Periods:      periods,
+		ActualDays:   actualDays,
 	}, nil
 }
 
