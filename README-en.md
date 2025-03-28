@@ -145,12 +145,13 @@ The service will start on port 8000. Use `docker logs sleep-status` to view the 
     - Get sleep statistics:
 
       ```sh
-      curl http://<host>:<port>/sleep-stats[?days=7&show_time_str=0]
+      curl http://<host>:<port>/sleep-stats[?days=7&show_time_str=0&show_sleep=0]
       ```
 
       Parameter description:
       - `days`: Optional, the number of days to analyze, default is 7 days
       - `show_time_str`: Optional, whether to display original time strings, 1 for display, 0 for hide, default is 0
+      - `show_sleep`: Optional, whether to display current sleep status, 1 for display, 0 for hide, default is 0
 
       Example response:
 
@@ -191,6 +192,8 @@ The service will start on port 8000. Use `docker logs sleep-status` to view the 
         - `is_short`: Whether it's a short sleep (less than 3 hours), only shown for short sleeps
       - `days`: Actual number of days analyzed
       - `request_days`: Requested number of days, only shown when different from actual days
+      - `sleep`: Current sleep status, only shown when `show_sleep=1`
+      - `current_sleep_at`: Current sleep start time (Unix timestamp, seconds), only shown when currently asleep
 
       Notes:
       - Short sleep periods (less than 3 hours) are not included in average sleep and wake time calculations, but are included in average duration
@@ -281,10 +284,13 @@ There is also a settings page where users can configure the server's BASE_URL an
   - Added `/sleep-stats` API for retrieving sleep statistics
   - Support for calculating average sleep time, wake time, and sleep duration
   - Support for displaying paired sleep periods (using Unix timestamps)
+  - Support for displaying current sleep status in `/sleep-stats` (optional)
+  - Automatic display of current sleep start time when in sleep state
 - Improvements
   - Support for handling short sleep periods (less than 3 hours)
   - Automatic adjustment of actual days analyzed when data is insufficient
   - Optional display of original time strings, hidden by default
+  - Optional display of current sleep status, controlled by `show_sleep=1` parameter
 - Code Optimization
   - Improved timezone handling for correct UTC and local time conversion
   - Optimized sleep data calculation logic

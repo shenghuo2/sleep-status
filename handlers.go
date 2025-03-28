@@ -51,10 +51,12 @@ type SleepStats struct {
 
 // StatsResponse 结构体保存睡眠统计响应
 type StatsResponse struct {
-	Success     bool       `json:"success"`
-	Stats       SleepStats `json:"stats"`
-	Days        int        `json:"days"`                   // 实际统计的天数
-	RequestDays int        `json:"request_days,omitempty"` // 请求的天数，如果与实际天数不同才显示
+	Success        bool       `json:"success"`
+	Stats          SleepStats `json:"stats"`
+	Days           int        `json:"days"`                   // 实际统计的天数
+	RequestDays    int        `json:"request_days,omitempty"` // 请求的天数，如果与实际天数不同才显示
+	Sleep          *bool      `json:"sleep,omitempty"`       // 当前睡眠状态，可选
+	CurrentSleepAt int64      `json:"current_sleep_at,omitempty"` // 当前睡眠开始时间（Unix 时间戳），仅当 sleep 为 true 时显示
 }
 
 // StatusHandler handles the /status route and returns the current sleep status
@@ -239,6 +241,13 @@ func StatsHandler(w http.ResponseWriter, r *http.Request) {
 	if showTimeStrParam == "1" || showTimeStrParam == "true" {
 		showTimeStr = true
 	}
+	
+	// 获取是否显示当前睡眠状态的参数，默认不显示
+	showSleep := false
+	showSleepParam := r.URL.Query().Get("show_sleep")
+	if showSleepParam == "1" || showSleepParam == "true" {
+		showSleep = true
+	}
 
 	// 读取足够多的睡眠记录以覆盖所需天数
 	// 由于我们不知道确切需要多少记录才能覆盖指定的天数，先获取较大数量的记录
@@ -270,6 +279,27 @@ func StatsHandler(w http.ResponseWriter, r *http.Request) {
 	// 如果实际天数与请求天数不同，则显示请求天数
 	if stats.ActualDays != days {
 		response.RequestDays = days
+	}
+	
+	// 如果需要显示当前睡眠状态
+	if showSleep {
+		// 直接使用配置中的状态
+		sleepStatus := ConfigData.Sleep
+		response.Sleep = &sleepStatus
+	}
+	
+	// current_sleep_at 字段与 show_sleep 参数无关，只由 ConfigData.Sleep 控制
+	if ConfigData.Sleep {
+		// 获取最新的一条入睡记录
+		latestSleepRecord, err := findLatestSleepRecord()
+		if err == nil && latestSleepRecord.Action == "sleep" {
+			// 将时间字符串转换为时间对象
+			sleepTimeObj, err := convertToUTC8(latestSleepRecord.Time)
+			if err == nil {
+				// 转换为 Unix 时间戳
+				response.CurrentSleepAt = sleepTimeObj.Unix()
+			}
+		}
 	}
 
 	json.NewEncoder(w).Encode(response)
@@ -465,4 +495,35 @@ func convertToUTC8(timeStr string) (time.Time, error) {
 	}
 
 	return t.In(loc), nil
+}
+
+
+
+// findLatestSleepRecord 查找最近的一条入睡记录
+func findLatestSleepRecord() (SleepRecord, error) {
+	// 读取所有睡眠记录
+	records, err := LoadSleepRecords(100) // 只获取最近的100条记录就足够了
+	if err != nil {
+		return SleepRecord{}, err
+	}
+	
+	// 如果没有记录，返回错误
+	if len(records) == 0 {
+		return SleepRecord{}, fmt.Errorf("no sleep records found")
+	}
+	
+	// 将记录按时间排序（从新到旧）
+	sort.Slice(records, func(i, j int) bool {
+		return records[i].Time > records[j].Time
+	})
+	
+	// 找出最新的一条入睡记录
+	for _, record := range records {
+		if record.Action == "sleep" {
+			return record, nil
+		}
+	}
+	
+	// 如果没有找到入睡记录，返回错误
+	return SleepRecord{}, fmt.Errorf("no sleep record found")
 }
