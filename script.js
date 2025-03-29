@@ -29,15 +29,14 @@ function formatDuration(hours) {
 }
 
 function updateTime() {
+  // 直接使用本地时间（因为本地已经是UTC+8时区）
   const now = new Date();
-  // 确保使用UTC+8时间
-  const utc8Now = convertToUTC8(now.toISOString());
-  return utc8Now.getFullYear() + '-' + 
-         String(utc8Now.getMonth() + 1).padStart(2, '0') + '-' + 
-         String(utc8Now.getDate()).padStart(2, '0') + ' ' + 
-         String(utc8Now.getHours()).padStart(2, '0') + ':' + 
-         String(utc8Now.getMinutes()).padStart(2, '0') + ':' + 
-         String(utc8Now.getSeconds()).padStart(2, '0');
+  return now.getFullYear() + '-' + 
+         String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+         String(now.getDate()).padStart(2, '0') + ' ' + 
+         String(now.getHours()).padStart(2, '0') + ':' + 
+         String(now.getMinutes()).padStart(2, '0') + ':' + 
+         String(now.getSeconds()).padStart(2, '0');
 }
 
 function createTimelineElement(date, segments) {
@@ -255,16 +254,17 @@ function updateStatus() {
       if (data.sleep !== undefined) {
         updateUIState(data.sleep);
         
-        // 如果有时间戳，转换为UTC+8时间
+        // 如果有时间戳，直接使用（API已返回UTC+8时间）
         if (data.timestamp) {
-          const utc8Time = convertToUTC8(data.timestamp);
+          // 解析API返回的时间戳（已经是UTC+8时间）
+          const apiTime = new Date(data.timestamp);
           document.getElementById('updateTime').textContent = 
-            utc8Time.getFullYear() + '-' + 
-            String(utc8Time.getMonth() + 1).padStart(2, '0') + '-' + 
-            String(utc8Time.getDate()).padStart(2, '0') + ' ' + 
-            String(utc8Time.getHours()).padStart(2, '0') + ':' + 
-            String(utc8Time.getMinutes()).padStart(2, '0') + ':' + 
-            String(utc8Time.getSeconds()).padStart(2, '0');
+            apiTime.getFullYear() + '-' + 
+            String(apiTime.getMonth() + 1).padStart(2, '0') + '-' + 
+            String(apiTime.getDate()).padStart(2, '0') + ' ' + 
+            String(apiTime.getHours()).padStart(2, '0') + ':' + 
+            String(apiTime.getMinutes()).padStart(2, '0') + ':' + 
+            String(apiTime.getSeconds()).padStart(2, '0');
         } else {
           document.getElementById('updateTime').textContent = updateTime();
         }
