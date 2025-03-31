@@ -416,7 +416,7 @@ function updateSleepTimelines() {
             wakeTime,
             sleepHour,
             wakeHour: 24,  // 到午夜
-            duration: firstDayDuration,
+            duration: durationHours, // 使用API提供的完整睡眠时长
             isShort: period.is_short || false,
             isCrossDaySleep: true,
             isFirstDay: true,
@@ -434,7 +434,7 @@ function updateSleepTimelines() {
             wakeTime,
             sleepHour: 0,  // 从午夜开始
             wakeHour,
-            duration: secondDayDuration,
+            duration: durationHours, // 使用API提供的完整睡眠时长
             isShort: period.is_short || false,
             isCrossDaySleep: true,
             isFirstDay: false,
