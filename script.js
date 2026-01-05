@@ -57,15 +57,23 @@ function createTimelineElement(date, segments) {
   timelineContainer.className = 'relative h-6 bg-gray-100 dark:bg-gray-700 rounded-md overflow-hidden';
   timelineWrapper.appendChild(timelineContainer);
 
-  // 添加刻度线
-  for (let hour = 0; hour <= 24; hour += 3) {
+  // 添加刻度线（每小时一条短线，只占下半部分）
+  for (let hour = 0; hour <= 24; hour++) {
     const tick = document.createElement('div');
-    tick.className = 'absolute top-0 bottom-0 w-px bg-gray-300 dark:bg-gray-600 z-10';
+    tick.className = 'absolute w-px bg-gray-300 dark:bg-gray-600 z-10';
     tick.style.left = `${(hour / 24) * 100}%`;
+    tick.style.bottom = '0';
     
-    // 主要刻度线加粗
+    // 6小时间隔的主刻度线更长
     if (hour % 6 === 0) {
+      tick.style.height = '100%';
       tick.classList.add('bg-gray-400', 'dark:bg-gray-500');
+    } else if (hour % 3 === 0) {
+      // 3小时间隔的刻度线占3/4
+      tick.style.height = '75%';
+    } else {
+      // 普通小时刻度线只占下半部分
+      tick.style.height = '50%';
     }
     
     timelineContainer.appendChild(tick);
@@ -290,7 +298,7 @@ function clearStatistics() {
   document.getElementById('avgWakeTime').textContent = '--:--';
   document.getElementById('avgSleepDuration').textContent = '-小时-分钟';
   document.getElementById('statsDateRange').textContent = '无数据';
-  document.getElementById('statsTitle').textContent = '睡眠统计:';
+  document.getElementById('statsTitle').textContent = '睡眠统计';
 }
 
 /**
@@ -319,9 +327,9 @@ function updateWeeklyStatsFromAPI(data) {
   const statsTitle = document.getElementById('statsTitle');
   if (statsTitle) {
     if (data.days === 1) {
-      statsTitle.textContent = '单日统计:';
+      statsTitle.textContent = '单日统计';
     } else {
-      statsTitle.textContent = `近${data.days}天统计:`;
+      statsTitle.textContent = '近期睡眠统计';
     }
   }
   
@@ -612,12 +620,12 @@ function updateSleepTimelines() {
       const timelineTitle = document.getElementById('timelineTitle');
       if (timelineTitle) {
         if (recentContinuousDates.length === 0) {
-          timelineTitle.textContent = '离线记录:';
+          timelineTitle.textContent = '离线记录';
         } else if (recentContinuousDates.length === 1) {
-          timelineTitle.textContent = '单日离线记录:';
+          timelineTitle.textContent = '单日离线记录';
         } else {
           // 使用实际显示的天数，而不是配置的天数
-          timelineTitle.textContent = `近${recentContinuousDates.length}天离线记录:`;
+          timelineTitle.textContent = `近${recentContinuousDates.length}天离线记录`;
         }
       }
       
@@ -650,11 +658,13 @@ document.addEventListener("DOMContentLoaded", () => {
   updateSleepTimelines();
   
   const testButton = document.getElementById('testButton');
-  let testMode = false;
-  testButton.addEventListener('click', () => {
-    testMode = !testMode;
-    updateUIState(testMode);
-  });
+  if (testButton) {
+    let testMode = false;
+    testButton.addEventListener('click', () => {
+      testMode = !testMode;
+      updateUIState(testMode);
+    });
+  }
 });
 
 function initConfig() {

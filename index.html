@@ -15,7 +15,7 @@
 <body class="bg-gray-50 dark:bg-gray-900" id="mainBody">
   <div id="candleContainer"></div>
   <div class="max-w-2xl mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-white"><span id="my-name1">生蚝现在</span><ruby>似<rt>sǐ</rt></ruby>了吗?</h1>
+    <h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-white"><span id="my-name1">生蚝现在</span><ruby>似<rt>sleep</rt></ruby>了吗?</h1>
     
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 transition-shadow duration-300 hover:shadow-xl">
       <div class="text-gray-700 dark:text-gray-300" id="my-status">shenghuo2's Status:</div>
@@ -25,19 +25,22 @@
     </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 transition-shadow duration-300 hover:shadow-xl">
-      <div id="timelineTitle" class="text-gray-700 dark:text-gray-300 mb-4">离线记录:</div>
+      <div id="timelineTitle" class="text-gray-700 dark:text-gray-300 mb-4 font-semibold">离线记录</div>
       <div id="sleepTimelines" class="space-y-8"></div>
       <div id="timelineDescription" class="text-sm text-gray-500 dark:text-gray-400 mt-8"></div>
       <div id="weeklyStats" class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-        <div id="statsTitle" class="text-gray-700 dark:text-gray-300 mb-4">睡眠统计:</div>
+        <div class="flex items-center justify-between mb-4">
+          <div id="statsTitle" class="text-gray-700 dark:text-gray-300 font-semibold">睡眠统计</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400">时区：UTC+8</div>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-2">
-            <div class="text-sm text-gray-600 dark:text-gray-400">平均入睡时间: <span id="avgSleepTime" class="font-mono">--:--</span></div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">平均清醒时间: <span id="avgWakeTime" class="font-mono">--:--</span></div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">平均入睡时间：<span id="avgSleepTime" class="font-mono">--:--</span></div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">平均起床时间：<span id="avgWakeTime" class="font-mono">--:--</span></div>
           </div>
           <div class="space-y-2">
-            <div class="text-sm text-gray-600 dark:text-gray-400">每日平均睡眠时长: <span id="avgSleepDuration" class="font-mono">-小时-分钟</span></div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">统计周期: <span id="statsDateRange" class="font-mono">----/--/-- ~ ----/--/--</span></div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">日均睡眠时长：<span id="avgSleepDuration" class="font-mono">-小时-分钟</span></div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">统计周期：<span id="statsDateRange" class="font-mono">----/--/-- ~ ----/--/--</span></div>
           </div>
         </div>
       </div>
@@ -68,7 +71,7 @@
         <br>
         数据通过 <a id="module-url" href="https://github.com/shenghuo2/sleep-status/tree/feature/magisk-module" class="text-blue-500 hover:underline" target="_blank">Magisk 模块</a> 实时采集并上传
         <br>
-        前端开源于 <a id="frontend-url" href="https://github.com/shenghuo2/sleep-status/tree/feature/example-frontend" class="text-blue-500 hover:underline" target="_blank">feature/example-fronend</a> 分支
+        前端开源于 <a id="frontend-url" href="https://github.com/shenghuo2/sleep-status/tree/feature/example-frontend" class="text-blue-500 hover:underline" target="_blank">feature/example-frontend</a> 分支
       </div>
     </div>
 

@@ -17,20 +17,22 @@ A simple frontend example to show sleep status.
 - Sleep Timeline Display
   - Shows recent sleep records
   - Updates every 5 minutes
-  - Time scale markers (0, 6, 12, 18, 24 hours)
+  - Hourly tick marks with 6-hour major ticks
   - Optimized duration format
   - **New: Smart display of recent continuous sleep records, automatically skipping older data**
   - **New: Dynamic title showing the actual number of days with records**
 - Sleep Statistics
   - **Updated: Shows statistics for the same number of days as offline records**
   - **Updated: "Daily Average Sleep Duration" replaces "Average Sleep Duration"**
+  - **Updated: "Average Wake-up Time" replaces "Average Wake Time"**
   - **New: Improved algorithm - sleep segments shorter than 3 hours and secondary sleep segments don't affect average sleep/wake times**
   - **New: All sleep segments contribute to daily total sleep duration for comprehensive data**
-  - Average sleep and wake times calculation
+  - **New: Timezone indicator (UTC+8), all times shown in China Standard Time**
+  - Average sleep and wake-up times calculation
   - Automatic date range updates
 - Built with pure HTML, CSS (Tailwind) and JavaScript
 - Loading states and error handling
-- Test Mode
+- Test Mode (commented out)
   - Toggle button to test online/offline effects
   - Instant visual feedback
 - **New: Project Information Links**
@@ -42,13 +44,11 @@ A simple frontend example to show sleep status.
 
 Simply open `index.html` in your browser. The page will automatically fetch and display the sleep status from the API endpoint.
 
-The test button in the top-right corner allows you to preview the online/offline state transitions and effects.
-
 ## API Integration
 
 The frontend connects to the following endpoints:
 - `GET https://sleep-status.shenghuo2.top/status` - Get current sleep status
-- `GET https://sleep-status.shenghuo2.top/records` - Get sleep timeline records
+- `GET https://sleep-status.shenghuo2.top/sleep-stats` - Get sleep statistics and records
 
 ## Development
 
