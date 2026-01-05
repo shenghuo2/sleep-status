@@ -119,14 +119,30 @@ The service will start on port 8000. Use `docker logs sleep-status` to view the 
 1. Run the compiled executable:
 
    ```sh
-   ./sleep-status [--port=] [--host=]
+   ./sleep-status [--port=] [--host=] [--cleanup]
    ```
 
    > Parameters in `[ ]` are optional.
 
+   Parameter description:
+   - `--port`: Service port, default `8000`
+   - `--host`: Listen address, default `0.0.0.0`
+   - `--cleanup`: Execute sleep record cleanup and exit
+
    By default, the service will listen on `0.0.0.0` port `8000`.
 
-2. API Description:
+2. Cleanup sleep records:
+
+   ```sh
+   ./sleep-status --cleanup
+   ```
+
+   The cleanup function intelligently merges invalid records caused by network fluctuations:
+   - Consecutive short cycles (sleep-wake-sleep-wake...) are merged into a single complete sleep cycle
+   - Uses `cleanup_min_duration` config value as threshold (falls back to `min_sleep_duration` if not set)
+   - Example: Multiple records with intervals less than threshold are merged from first sleep to last wake
+
+3. API Description:
 
     - Get the current `sleep` status:
 
@@ -235,11 +251,13 @@ The `config.json` file contains the following fields:
 
 ```json
 {
-  "version": 2,           // Configuration file version
+  "version": 3,           // Configuration file version
   "sleep": false,         // Sleep status
   "key": "your-key",      // API key
   "heartbeat_enabled": false,  // Whether to enable heartbeat detection
-  "heartbeat_timeout": 60      // Heartbeat timeout in seconds
+  "heartbeat_timeout": 60,     // Heartbeat timeout in seconds
+  "min_sleep_duration": 10,    // Minimum valid sleep duration (minutes) for statistics
+  "cleanup_min_duration": 25   // Minimum interval for cleanup (minutes), optional
 }
 ```
 
@@ -278,6 +296,16 @@ There is also a settings page where users can configure the server's BASE_URL an
 # Others
 
 ## Changelog
+
+### v0.1.4 (2026-01-05)
+- New Features
+  - Added `--cleanup` parameter for intelligent cleanup of invalid sleep records
+  - Cleanup function merges consecutive short cycle records caused by network fluctuations
+  - Added `min_sleep_duration` config option to control minimum valid sleep duration for statistics
+  - Added `cleanup_min_duration` config option (optional) to separately control cleanup threshold
+- Improvements
+  - Configuration file upgraded to version 3
+  - Cleanup logic intelligently identifies isolated valid sleep periods (like naps) and network fluctuation records that need merging
 
 ### v0.1.3 (2025-03-28)
 - New Features

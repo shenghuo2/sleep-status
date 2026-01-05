@@ -65,11 +65,13 @@ Sleep-Status 是一个使用 Go 语言编写的简单后端服务。该服务通
 
 ```json
 {
-  "version": 2,           // 配置文件版本
+  "version": 3,           // 配置文件版本
   "sleep": false,         // 睡眠状态
   "key": "your-key",      // API密钥
   "heartbeat_enabled": false,  // 是否启用心跳检测
-  "heartbeat_timeout": 60      // 心跳超时时间（秒）
+  "heartbeat_timeout": 60,     // 心跳超时时间（秒）
+  "min_sleep_duration": 10,    // 最小有效睡眠时长（分钟），用于统计输出
+  "cleanup_min_duration": 25   // cleanup 使用的最小间隔（分钟），可选
 }
 ```
 
@@ -149,12 +151,28 @@ services:
 1. 运行编译后的可执行文件：
 
    ```sh
-   ./sleep-status [--port=] [--host=]
+   ./sleep-status [--port=] [--host=] [--cleanup]
    ```
 
    >  `[ ]`内为可选参数
 
+   参数说明：
+   - `--port`：服务端口，默认 `8000`
+   - `--host`：监听地址，默认 `0.0.0.0`
+   - `--cleanup`：执行睡眠记录清理，清理后退出
+
    默认情况下，服务将监听在 `0.0.0.0` 的 `8000` 端口。
+
+2. 清理睡眠记录：
+
+   ```sh
+   ./sleep-status --cleanup
+   ```
+
+   清理功能会智能合并因网络波动导致的无效记录：
+   - 连续的短周期（sleep-wake-sleep-wake...）会被合并为一个完整的睡眠周期
+   - 使用 `cleanup_min_duration` 配置值作为判断阈值（如未设置则使用 `min_sleep_duration`）
+   - 例如：多个间隔小于阈值的记录会被合并为从第一次入睡到最后一次醒来
 
 2. API 接口说明：
 
@@ -330,6 +348,16 @@ https://github.com/shenghuo2/sleep-status-sender
 [在线示例](https://blog.shenghuo2.top/test)
 
 ## 更新日志
+
+### v0.1.4 (2026-01-05)
+- 新功能
+  - 添加 `--cleanup` 参数，支持智能清理无效睡眠记录
+  - 清理功能会合并因网络波动导致的连续短周期记录
+  - 添加 `min_sleep_duration` 配置项，控制统计输出的最小有效睡眠时长
+  - 添加 `cleanup_min_duration` 配置项（可选），单独控制清理阈值
+- 改进
+  - 配置文件升级到版本 3
+  - 清理逻辑智能识别孤立的有效睡眠段（如午休）和需要合并的网络波动记录
 
 ### v0.1.3 (2025-03-28)
 - 新功能

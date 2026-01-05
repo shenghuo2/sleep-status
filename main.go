@@ -9,7 +9,14 @@ import (
 func main() {
 	port := flag.String("port", "8000", "port to serve on")
 	host := flag.String("host", "0.0.0.0", "host to serve on")
+	cleanup := flag.Bool("cleanup", false, "cleanup invalid sleep records")
 	flag.Parse()
+
+	// 如果指定了 --cleanup 参数，执行清理操作
+	if *cleanup {
+		runCleanup()
+		return
+	}
 
 	if err := LoadConfig(); err != nil {
 		fmt.Printf("Error loading config: %v\n", err)
