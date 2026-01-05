@@ -348,8 +348,8 @@ func calculateSleepStats(records []SleepRecord, requestedDays int, showTimeStr b
 			// 计算睡眠时长（分钟）
 			duration := int(recordTime.Sub(sleepTimeObj).Minutes())
 
-			// 将所有睡眠时长大于10分钟且小于24小时的睡眠段都记录下来
-			if duration >= 10 && duration <= 1440 {
+			// 将所有睡眠时长大于 MinSleepDuration 分钟且小于24小时的睡眠段都记录下来
+			if duration >= ConfigData.MinSleepDuration && duration <= 1440 {
 				// 标记短时间睡眠（小于3小时）
 				isShort := duration < 180
 

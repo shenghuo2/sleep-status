@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	CurrentConfigVersion = 2 // Increment this when adding new versions
+	CurrentConfigVersion = 3 // Increment this when adding new versions
 )
 
 var (
@@ -29,16 +29,27 @@ type BaseConfig struct {
 // Config represents the current version of configuration
 type Config struct {
 	BaseConfig
-	Sleep            bool   `json:"sleep"`
-	Key              string `json:"key"`
-	HeartbeatEnabled bool   `json:"heartbeat_enabled"`
-	HeartbeatTimeout int    `json:"heartbeat_timeout"`
+	Sleep              bool   `json:"sleep"`
+	Key                string `json:"key"`
+	HeartbeatEnabled   bool   `json:"heartbeat_enabled"`
+	HeartbeatTimeout   int    `json:"heartbeat_timeout"`
+	MinSleepDuration   int    `json:"min_sleep_duration"`             // 最小有效睡眠时长（分钟），用于统计输出
+	CleanupMinDuration int    `json:"cleanup_min_duration,omitempty"` // cleanup 使用的最小间隔（分钟），可选，默认使用 MinSleepDuration
 }
 
 // ConfigV1 represents version 1 of configuration
 type ConfigV1 struct {
 	Sleep bool   `json:"sleep"`
 	Key   string `json:"key"`
+}
+
+// ConfigV2 represents version 2 of configuration
+type ConfigV2 struct {
+	BaseConfig
+	Sleep            bool   `json:"sleep"`
+	Key              string `json:"key"`
+	HeartbeatEnabled bool   `json:"heartbeat_enabled"`
+	HeartbeatTimeout int    `json:"heartbeat_timeout"`
 }
 
 // migrationFunc defines the signature for version migration functions
@@ -48,6 +59,7 @@ type migrationFunc func([]byte) (Config, error)
 var migrationMap = map[int]migrationFunc{
 	0: migrateFromV0ToLatest, // For configs with no version field
 	1: migrateFromV1ToLatest,
+	2: migrateFromV2ToLatest,
 }
 
 // migrateFromV0ToLatest handles migration from the original version (no version field)
@@ -65,6 +77,7 @@ func migrateFromV0ToLatest(data []byte) (Config, error) {
 		Key:              oldConfig.Key,
 		HeartbeatEnabled: false,
 		HeartbeatTimeout: 60,
+		MinSleepDuration: 10,
 	}, nil
 }
 
@@ -83,6 +96,26 @@ func migrateFromV1ToLatest(data []byte) (Config, error) {
 		Key:              v1Config.Key,
 		HeartbeatEnabled: false,
 		HeartbeatTimeout: 60,
+		MinSleepDuration: 10,
+	}, nil
+}
+
+// migrateFromV2ToLatest handles migration from version 2
+func migrateFromV2ToLatest(data []byte) (Config, error) {
+	var v2Config ConfigV2
+	if err := json.Unmarshal(data, &v2Config); err != nil {
+		return Config{}, fmt.Errorf("failed to unmarshal v2 config: %v", err)
+	}
+
+	return Config{
+		BaseConfig: BaseConfig{
+			Version: CurrentConfigVersion,
+		},
+		Sleep:            v2Config.Sleep,
+		Key:              v2Config.Key,
+		HeartbeatEnabled: v2Config.HeartbeatEnabled,
+		HeartbeatTimeout: v2Config.HeartbeatTimeout,
+		MinSleepDuration: 10,
 	}, nil
 }
 
@@ -107,6 +140,7 @@ func LoadConfig() error {
 			Key:              randomKey,
 			HeartbeatEnabled: false,
 			HeartbeatTimeout: 60,
+			MinSleepDuration: 10,
 		}
 
 		if err := SaveConfig(); err != nil {
